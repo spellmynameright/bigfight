@@ -405,6 +405,8 @@ export interface SaveSettings {
   muted: boolean;
   quality: 'auto' | 'mobile' | 'high';
   shake: boolean;
+  /** Desktop first-run: the HOW TO PLAY page was shown before the first fight. */
+  controlsSeen: boolean;
 }
 
 export interface SaveData {

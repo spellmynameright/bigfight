@@ -284,7 +284,7 @@ export class GameplayScreen implements Screen {
       }
     }
 
-    this.hud = new Hud();
+    this.hud = new Hud({ keyHints: !game.input.isTouch });
     this.damageNumbers = new DamageNumbers(game.renderer.scene);
 
     const players = this.players;

@@ -10,6 +10,15 @@ const POWERUP_BANNERS: Record<PowerupId, string> = {
   freezeRay: 'FREEZE RAY!',
 };
 
+const KEY_HINTS: [string, string][] = [
+  ['WASD', 'MOVE'],
+  ['SPACE', 'JUMP'],
+  ['J', 'ATTACK'],
+  ['K', 'WEAPON'],
+  ['P', 'PAUSE'],
+  ['?', 'HELP'],
+];
+
 /**
  * In-fight HUD: damage %, stock pips, wave banner, boss health bar.
  * GameplayScreen calls set() once per frame; everything else is event-driven.
@@ -28,8 +37,19 @@ export class Hud {
   private bannerTimer: number | null = null;
   private unsubs: (() => void)[] = [];
 
-  constructor() {
+  constructor(opts: { keyHints?: boolean } = {}) {
     this.root = uiRoot('bf-hud');
+
+    // Desktop: the touch overlay isn't there to label the buttons, so a
+    // small key legend does the job (fades to a whisper after a while).
+    if (opts.keyHints) {
+      const legend = el('div', 'bf-keyhints', this.root);
+      for (const [key, what] of KEY_HINTS) {
+        const chip = el('span', 'bf-keyhint', legend);
+        el('kbd', 'bf-kbd', chip).textContent = key;
+        el('span', '', chip).textContent = what;
+      }
+    }
 
     const corner = el('div', 'bf-hud-corner', this.root);
     this.damageEl = el('div', 'bf-damage', corner);

@@ -28,6 +28,9 @@ spec; when a "bug report" describes intended-but-confusing behavior, fix the *co
   `purchasedCharacters`, then RELOAD (an open game tab overwrites edits from memory).
 - Jacob often playtests the dev tab/phone while I work — don't fight him for the browser, and
   every file save hot-reloads his session.
+- The in-app browser pane's key tool sends keydown WITHOUT `event.code` (the game keys on
+  `code`), and a hidden pane reports `innerHeight` 0. Test keyboard flows by dispatching
+  synthetic `KeyboardEvent`s with `code` set, then stepping the sim manually.
 - Pose/animation work: never guess rotation signs — measure world positions or render a
   contact-sheet of variants and look. Axis conventions are documented in `src/rigs/poses.ts`.
 
@@ -51,6 +54,10 @@ their picks, THEN port to the game. Don't restyle live game code on taste-guesse
   online build had drifted from Ryder's design). His 21 commits live on
   `archive/online-v1-brother` — cherry-pick from there (dances, abilities, lobby ideas)
   instead of rebuilding.
+- Desktop keyboard: every menu is arrow/Enter/Esc navigable for free (`src/input/menuKeys.ts`
+  walks the buttons in the top `#ui` root). Esc presses the `◀` button or one marked
+  `data-back`; overlays (pause/settings/controls) instead close on `pausePressed` in their
+  `update()`. Never do BOTH on one screen — Esc would pop twice.
 - Losing keeps all loot (Ryder's rule) — never add loss penalties.
 - Campaign bosses escalate: each NEW boss must be the hardest yet (Jacob 2026-07-10);
   Lava Golem (L16) is the current ceiling. Hard = pace/damage/variety, never unclear telegraphs.

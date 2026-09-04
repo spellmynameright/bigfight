@@ -26,10 +26,16 @@ export class KeyboardInput {
   private interactionQueued = false;
 
   private readonly onKeyDown = (event: KeyboardEvent): void => {
-    if (!isGameCode(event.code)) return;
     // Typing in a text field (e.g. the online nickname) wins over game input —
     // otherwise WASD/P/space never reach the field.
     if (isEditableTarget(event.target)) return;
+    // Enter is a "press any key" key (title screen) but never a held game
+    // input, and it must keep its native button-click behavior in menus.
+    if (event.code === 'Enter') {
+      this.interactionQueued = true;
+      return;
+    }
+    if (!isGameCode(event.code)) return;
     event.preventDefault();
     this.heldCodes.add(event.code);
     this.interactionQueued = true;

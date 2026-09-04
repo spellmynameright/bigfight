@@ -57,7 +57,7 @@ export class MarketScreen implements Screen {
     }
 
     this.listEl = el('div', 'bf-market-list', this.root);
-    button('DONE ▶', () => this.onDone(), 'bf-button bf-button-green bf-market-done', this.root);
+    button('DONE ▶', () => this.onDone(), 'bf-button bf-button-green bf-market-done', this.root).dataset.back = '1';
 
     this.refresh(game);
     events.emit('music', { mood: 'menu' });

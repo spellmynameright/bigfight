@@ -2,6 +2,7 @@ import type { Game } from '../Game';
 import { resetSave } from '../core/save';
 import { button, el, uiRoot } from '../ui/dom';
 import { applyUpdate, updateAvailable } from '../updates';
+import { ControlsScreen } from './ControlsScreen';
 import type { Screen } from './Screen';
 
 /** Settings: sound, quality, screen shake, reset progress (with confirm). */
@@ -60,6 +61,8 @@ export class SettingsScreen implements Screen {
       col,
     );
 
+    button('HOW TO PLAY', () => game.screens.push(new ControlsScreen()), 'bf-button bf-button-yellow', col);
+
     let updateReady = false;
     const updateBtn = button(
       'CHECK FOR UPDATES',
@@ -110,5 +113,7 @@ export class SettingsScreen implements Screen {
     this.root = null;
   }
 
-  update(): void {}
+  update(game: Game): void {
+    if (game.input.state.pausePressed) this.onBack();
+  }
 }

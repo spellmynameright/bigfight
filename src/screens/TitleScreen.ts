@@ -47,7 +47,7 @@ export class TitleScreen implements Screen {
     logo.innerHTML = PISTOL_SVG;
     const word = el('div', 'bf-logo-word', this.root);
     word.innerHTML = '<span>BIG</span> <span class="bf-logo-fight">FIGHT</span>';
-    el('div', 'bf-tap-hint', this.root).textContent = 'TAP TO FIGHT';
+    el('div', 'bf-tap-hint', this.root).textContent = game.input.isTouch ? 'TAP TO FIGHT' : 'PRESS ANY KEY';
 
     const start = (): void => {
       if (this.started) return;

@@ -13,7 +13,7 @@ function defaults(): SaveData {
     ownedSidekicks: [],
     equippedSidekick: null,
     levelsBeaten: 0,
-    settings: { muted: false, quality: 'auto', shake: true },
+    settings: { muted: false, quality: 'auto', shake: true, controlsSeen: false },
   };
 }
 

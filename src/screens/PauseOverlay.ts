@@ -1,6 +1,7 @@
 import { events } from '../core/events';
 import type { Game } from '../Game';
 import { button, el, uiRoot } from '../ui/dom';
+import { ControlsScreen } from './ControlsScreen';
 import type { Screen } from './Screen';
 
 /**
@@ -28,6 +29,7 @@ export class PauseOverlay implements Screen {
     const col = el('div', 'bf-button-col', panel);
     button('RESUME', () => game.screens.pop(), 'bf-button bf-button-green', col);
     button('RESTART LEVEL', () => this.callbacks.onRestart(), 'bf-button', col);
+    button('HOW TO PLAY', () => game.screens.push(new ControlsScreen()), 'bf-button bf-button-yellow', col);
     button(
       game.audio.muted ? 'SOUND: OFF' : 'SOUND: ON',
       () => {
@@ -35,7 +37,7 @@ export class PauseOverlay implements Screen {
         game.audio.setMuted(muted);
         game.save.settings.muted = muted;
         game.persist();
-        const btn = col.children[2] as HTMLButtonElement;
+        const btn = col.children[3] as HTMLButtonElement;
         btn.textContent = muted ? 'SOUND: OFF' : 'SOUND: ON';
       },
       'bf-button',

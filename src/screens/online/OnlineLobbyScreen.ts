@@ -152,7 +152,7 @@ export class OnlineLobbyScreen implements Screen {
     this.plateEls.clear();
 
     const header = el('header', 'bf-online-header', root);
-    button('BACK', () => this.back(), 'bf-online-back', header);
+    button('BACK', () => this.back(), 'bf-online-back', header).dataset.back = '1';
     const room = state.room;
     el('h1', 'bf-online-title', header).textContent = room
       ? (this.view === 'waiting' ? 'BATTLE LOBBY' : room.name.toUpperCase())

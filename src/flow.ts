@@ -3,6 +3,7 @@ import { LEVELS, levelById } from './data/levels';
 import type { MaterialId } from './data/types';
 import { startOnlineFlow } from './flowOnline';
 import { CharacterSelectScreen } from './screens/CharacterSelectScreen';
+import { ControlsScreen } from './screens/ControlsScreen';
 import { GameplayScreen } from './screens/GameplayScreen';
 import { LevelMapScreen } from './screens/LevelMapScreen';
 import { MarketScreen } from './screens/MarketScreen';
@@ -97,6 +98,13 @@ export function startLevel(
         ),
     }),
   );
+  // Desktop first fight: nothing on screen says which keys do what, so the
+  // HOW TO PLAY page opens once on top (phones get labelled touch buttons).
+  if (!game.input.isTouch && !game.save.settings.controlsSeen) {
+    game.save.settings.controlsSeen = true;
+    game.persist();
+    game.screens.push(new ControlsScreen());
+  }
 }
 
 function handleLevelEnd(
