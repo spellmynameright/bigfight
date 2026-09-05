@@ -11,7 +11,6 @@ concurrency:
 
 jobs:
   validate:
-    if: ${{ vars.GARRISON_RUNNER != '' || vars.HEAVY_RUNNER != '' || vars.LHS_RUNNER != '' }}
     runs-on: ${{ vars.GARRISON_RUNNER || vars.HEAVY_RUNNER || vars.LHS_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
@@ -42,7 +41,6 @@ jobs:
       - run: node scripts/replay-ci.mjs
 
   check-token:
-    if: ${{ vars.GARRISON_RUNNER != '' || vars.HEAVY_RUNNER != '' || vars.LHS_RUNNER != '' }}
     runs-on: ${{ vars.GARRISON_RUNNER || vars.HEAVY_RUNNER || vars.LHS_RUNNER || 'ubuntu-latest' }}
     outputs:
       has-token: ${{ steps.probe.outputs.has-token }}
@@ -60,7 +58,7 @@ jobs:
 
   deploy:
     needs: [validate, check-token]
-    if: ${{ needs.check-token.outputs.has-token == 'true' && (vars.GARRISON_RUNNER != '' || vars.HEAVY_RUNNER != '' || vars.LHS_RUNNER != '') }}
+    if: ${{ needs.check-token.outputs.has-token == 'true' }}
     runs-on: ${{ vars.GARRISON_RUNNER || vars.HEAVY_RUNNER || vars.LHS_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
