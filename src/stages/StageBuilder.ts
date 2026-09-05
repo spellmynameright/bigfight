@@ -4,6 +4,7 @@ import { buildColliders, type StageColliders } from '../physics/collision';
 import { makeToonMaterial } from '../render/toon';
 import { ARENA_PRESENTATION, applyPresentation } from '../render/presentation';
 import { decorateStage } from './decorations';
+import { buildScenery } from './Scenery';
 import { paintStageSky, STAGE_PALETTES, stageSlabGeometry, stageSurfaceTexture, stageTerrainGeometry } from './stagePresentation';
 
 /** Stage visuals share the exact collision definitions in either presentation. */
@@ -11,6 +12,8 @@ export interface BuiltStage {
   group: THREE.Group;
   colliders: StageColliders;
   def: StageDef;
+  /** Settles after scenery loads (or the procedural fallback is selected). */
+  ready: Promise<void>;
   dispose(): void;
 }
 
@@ -52,8 +55,12 @@ export function buildStage(def: StageDef, scene: THREE.Scene): BuiltStage {
     lipMat.emissiveIntensity = def.theme === 'volcano' || def.theme === 'rooftop' ? 0.18 : 0.035;
   }
 
+  const legacyScenery = new THREE.Group();
+  legacyScenery.name = 'procedural-scenery-fallback';
+  group.add(legacyScenery);
+
   // ---- sky ----
-  group.add(buildSky(def, materials, textures, geometries));
+  legacyScenery.add(buildSky(def, materials, textures, geometries));
 
   // ---- hills for depth (grassy by default; rocky/snowy for hot/cold themes) ----
   const hillColors = palette?.terrain ?? (
@@ -69,18 +76,18 @@ export function buildStage(def: StageDef, scene: THREE.Scene): BuiltStage {
     const hw = 16 + i * 7;
     hill.scale.set(hw, (palette ? 10 : 6) + i * 2.5, palette ? 1 : 6);
     hill.position.set((i - 1) * 18, def.blast.bottom - 2 - i * 1.5, -14 - i * 4);
-    group.add(hill);
+    legacyScenery.add(hill);
   }
 
   // ---- clouds + sun ----
   const cloudMat = flat(palette ? new THREE.Color(palette.cloud).lerp(new THREE.Color(palette.horizon), 0.7).getHex() : 0xffffff, palette ? 1 : 0.92);
   for (let i = 0; i < 6; i += 1) {
-    group.add(buildCloud(cloudMat, -22 + i * 9 + (i % 2) * 3, 7 + (i % 3) * 3.4, -8 - (i % 4) * 3));
+    legacyScenery.add(buildCloud(cloudMat, -22 + i * 9 + (i % 2) * 3, 7 + (i % 3) * 3.4, -8 - (i % 4) * 3));
   }
   const sun = new THREE.Mesh(SPHERE, flat(palette?.sun ?? 0xfff3b8));
   sun.scale.setScalar(2.6);
   sun.position.set(def.blast.right - 4, def.blast.top - 3, -18);
-  group.add(sun);
+  legacyScenery.add(sun);
 
   // ---- platforms ----
   for (const platform of def.platforms) {
@@ -124,17 +131,20 @@ export function buildStage(def: StageDef, scene: THREE.Scene): BuiltStage {
     }
   }
 
-  const decorations = decorateStage(group, palette
+  const decorations = decorateStage(legacyScenery, palette
     ? { ...def, skyColor: palette.horizon, glowColor: palette.edge }
     : def);
   applyPresentation(group, 'stage');
+  const scenery = ARENA_PRESENTATION ? buildScenery(def.theme, group, legacyScenery) : null;
 
   scene.add(group);
   return {
     group,
     colliders,
     def,
+    ready: scenery?.ready ?? Promise.resolve(),
     dispose(): void {
+      scenery?.dispose();
       decorations.dispose();
       scene.remove(group);
       for (const material of materials) material.dispose();

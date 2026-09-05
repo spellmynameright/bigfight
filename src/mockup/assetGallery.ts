@@ -168,6 +168,8 @@ function buildView(): AssetView {
   }
   if (family === 'stages') {
     const stage = buildStage(STAGES.find((entry) => entry.id === assetId)!, scene);
+    // This gallery renders on demand, so async scenery must request one fresh frame.
+    void stage.ready.then(() => { if (!disposed && view?.stage === stage) render(); });
     return { root: stage.group, stage, dispose: () => { stage.dispose(); stage.group.removeFromParent(); } };
   }
   const pickupScene = new THREE.Scene();
