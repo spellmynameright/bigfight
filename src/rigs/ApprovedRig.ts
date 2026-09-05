@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { clamp, damp } from '../core/math';
+import { excludeFromLuminanceBloom } from '../render/presentation';
 import { buildVanguard } from '../mockup/styles/vanguard';
 import { buildWildform } from '../mockup/styles/wildform';
 import { buildRelic } from '../mockup/styles/relic';
@@ -177,7 +178,10 @@ export class ApprovedRig implements Rig {
       if (!(node instanceof THREE.Mesh) && node !== this.weaponSocket && node.name !== 'approved-wrist-right') this.poseNodes.push(transform(node));
     });
     this.poseNodes.push(transform(this.hipsControl), transform(this.poseRoot));
-    for (const material of materials) this.surfaces.push({ material, color: material.color.clone(), opacity: material.opacity, transparent: material.transparent, depthWrite: material.depthWrite });
+    for (const material of materials) {
+      excludeFromLuminanceBloom(material);
+      this.surfaces.push({ material, color: material.color.clone(), opacity: material.opacity, transparent: material.transparent, depthWrite: material.depthWrite });
+    }
 
     this.shadow = new THREE.Mesh(new THREE.CircleGeometry(1, 32), new THREE.MeshBasicMaterial({ color: 0x172338, transparent: true, opacity: 0.28, depthWrite: false }));
     this.shadow.name = 'approved-ground-shadow';

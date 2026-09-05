@@ -7,7 +7,7 @@
     "dev": "vite --host",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host",
-    "check": "tsc --noEmit && node scripts/check-determinism.mjs",
+    "check": "tsc --noEmit && node scripts/check-determinism.mjs && tsx --test src/render/**/*.test.ts",
     "server:dev": "tsx watch server/main.ts",
     "server:start": "tsx server/main.ts",
     "server:test": "tsx --test server/**/*.test.ts",

@@ -37,6 +37,7 @@ type FinishUniforms = {
 };
 
 const finishes = new WeakMap<THREE.MeshToonMaterial, FinishUniforms>();
+const bloomExcluded = new WeakSet<THREE.MeshStandardMaterial>();
 const SURFACES: Record<Surface, readonly [number, number, number, number]> = {
   matte: [12, 0.035, 0.035, 0],
   satin: [28, 0.18, 0.085, 0],
@@ -51,6 +52,29 @@ export function configurePresentationRenderer(renderer: THREE.WebGLRenderer): vo
   if (!ARENA_PRESENTATION) return;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.08;
+}
+
+/**
+ * Keep ordinary PBR surfaces below the presentation bloom threshold while
+ * preserving their lit color and ACES tone mapping. Energy stays HDR.
+ */
+export function excludeFromLuminanceBloom(material: THREE.MeshStandardMaterial): void {
+  if (!ARENA_PRESENTATION || bloomExcluded.has(material)
+    || (material.emissive.getHex() !== 0 && material.emissiveIntensity > 0)) return;
+  bloomExcluded.add(material);
+  const previousCompile = material.onBeforeCompile;
+  const previousKey = material.customProgramCacheKey.bind(material);
+  const baseKey = previousKey();
+  material.onBeforeCompile = (shader, renderer) => {
+    previousCompile.call(material, shader, renderer);
+    shader.fragmentShader = shader.fragmentShader.replace('#include <opaque_fragment>', `
+      // Ordinary paint, bone, ivory, and horn surfaces must not become light sources.
+      outgoingLight = min(outgoingLight, vec3(1.0));
+      #include <opaque_fragment>
+    `);
+  };
+  material.customProgramCacheKey = () => `${baseKey}:no-luminance-bloom-v1`;
+  material.needsUpdate = true;
 }
 
 /** A warm key defines form while cool fill keeps shaded faces readable. */
