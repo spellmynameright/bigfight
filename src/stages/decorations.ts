@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { StageDef } from '../data/types';
 import { makeToonMaterial } from '../render/toon';
+import { ARENA_PRESENTATION } from '../render/presentation';
 
 const SPHERE = new THREE.SphereGeometry(1, 18, 12);
 const CAPSULE = new THREE.CapsuleGeometry(1, 1, 4, 12);
@@ -94,7 +95,8 @@ function decorateRooftop(kit: DecorationKit, def: StageDef): void {
   for (let i = 0; i < buildings.length; i += 1) {
     const building = buildings[i]!;
     const mat = buildingMats[i % buildingMats.length]!;
-    addBox(kit.root, mat, building.w, building.h, 0.48, building.x, -3.7 + building.h * 0.5, building.z);
+    const extension = ARENA_PRESENTATION ? 24 : 0;
+    addBox(kit.root, mat, building.w, building.h + extension, 0.48, building.x, -3.7 + building.h * 0.5 - extension * 0.5, building.z);
     for (const side of [-1, 1] as const) {
       addBox(kit.root, windowMat, 0.28, 0.36, 0.08, building.x + side * building.w * 0.24, building.h * 0.14, building.z + 0.3);
       addBox(kit.root, windowMat, 0.28, 0.36, 0.08, building.x + side * building.w * 0.24, building.h * 0.5, building.z + 0.3);

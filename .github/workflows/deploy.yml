@@ -16,7 +16,8 @@ concurrency:
 
 jobs:
   redirect:
-    runs-on: ubuntu-latest
+    if: ${{ vars.GARRISON_RUNNER != '' || vars.HEAVY_RUNNER != '' || vars.LHS_RUNNER != '' }}
+    runs-on: ${{ vars.GARRISON_RUNNER || vars.HEAVY_RUNNER || vars.LHS_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/upload-pages-artifact@v3
@@ -25,7 +26,8 @@ jobs:
 
   deploy:
     needs: redirect
-    runs-on: ubuntu-latest
+    if: ${{ vars.GARRISON_RUNNER != '' || vars.HEAVY_RUNNER != '' || vars.LHS_RUNNER != '' }}
+    runs-on: ${{ vars.GARRISON_RUNNER || vars.HEAVY_RUNNER || vars.LHS_RUNNER || 'ubuntu-latest' }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

@@ -96,6 +96,7 @@ export function buildRosterGrid(
     setSelected(id: string | null): void {
       for (const [tileId, tile] of tiles) {
         tile.classList.toggle('bf-tile-selected', tileId === id);
+        tile.setAttribute('aria-pressed', String(tileId === id));
       }
     },
   };

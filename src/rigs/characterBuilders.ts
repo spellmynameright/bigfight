@@ -15,9 +15,12 @@
 import * as THREE from 'three';
 import { clamp, damp } from '../core/math';
 import { makeToonMaterial } from '../render/toon';
+import { ARENA_PRESENTATION, applyPresentation } from '../render/presentation';
 import type { CharacterDef } from '../data/types';
 import type { Rig } from './FighterRig';
 import type { JointName, Pose } from './poses';
+import { buildApprovedRig } from './ApprovedRig';
+import { subjectById } from '../mockup/styles/catalog';
 
 const SPHERE = new THREE.SphereGeometry(1, 20, 14);
 const CAPSULE = new THREE.CapsuleGeometry(1, 1, 4, 12);
@@ -45,6 +48,7 @@ export class HeroRig implements Rig {
   private readonly flash = new THREE.Color(0xffffff);
   private readonly shadow: THREE.Mesh;
   private readonly shadowMat: THREE.MeshBasicMaterial;
+  private readonly shadowSize = new THREE.Vector2();
   private readonly inner = new THREE.Group();
   private flashTimer = 0;
   private flashDuration = 0;
@@ -68,6 +72,7 @@ export class HeroRig implements Rig {
     this.shadow = new THREE.Mesh(SHADOW_CIRCLE, this.shadowMat);
     this.shadow.rotation.x = -Math.PI / 2;
     this.shadow.scale.set(0.34 * def.proportions.bulk + 0.14, 0.24 * def.proportions.bulk + 0.1, 1);
+    this.shadowSize.set(this.shadow.scale.x, this.shadow.scale.y);
     this.shadow.renderOrder = -1;
     this.root.add(this.shadow);
   }
@@ -109,7 +114,8 @@ export class HeroRig implements Rig {
     this.shadow.visible = true;
     this.shadow.position.y = groundLocalY + 0.12;
     const sc = 1 - 0.45 * clamp(airborneT, 0, 1);
-    this.shadow.scale.setScalar(sc);
+    if (ARENA_PRESENTATION) this.shadow.scale.set(this.shadowSize.x * sc, this.shadowSize.y * sc, 1);
+    else this.shadow.scale.setScalar(sc);
     this.shadowMat.opacity = 0.28 * (1 - 0.6 * clamp(airborneT, 0, 1)) * this.ghostAlpha;
   }
 
@@ -549,7 +555,9 @@ const BUILDERS: Record<string, Builder> = {
 
 /** Build a playable character's rig (falls back to volt's builder shape). */
 export function buildCharacterRig(def: CharacterDef): Rig {
+  if (ARENA_PRESENTATION) return buildApprovedRig(subjectById(def.id), def.proportions.height);
   const rig = new HeroRig(def);
   (BUILDERS[def.id] ?? BUILDERS.volt!)(rig);
+  applyPresentation(rig.root, 'fighter');
   return rig;
 }

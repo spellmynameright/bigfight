@@ -1,4 +1,5 @@
 import { clamp, lerp, smoothstep } from '../core/math';
+import type { AttackDef } from '../data/types';
 
 // Profile rig faces +X; z = sagittal swing (visible from camera), x = lateral/roll (depth), y = yaw. Author all new poses in this convention.
 export type JointName =
@@ -16,7 +17,14 @@ export type JointName =
   | 'root';
 
 export type JointRotation = { x?: number; y?: number; z?: number };
-export type Pose = Partial<Record<JointName, JointRotation>>;
+export interface PoseMotion {
+  kind: 'ready' | 'run' | 'attack' | 'jump' | 'fall' | 'landing' | 'hit' | 'tumble' | 'ko' | 'victory';
+  time?: number;
+  phase?: number;
+  speed?: number;
+  poseId?: string;
+}
+export type Pose = Partial<Record<JointName, JointRotation>> & { motion?: PoseMotion };
 
 type Axis = keyof JointRotation;
 type FullPose = Record<JointName, Required<JointRotation>>;
@@ -37,7 +45,7 @@ const JOINTS: readonly JointName[] = [
   'root',
 ];
 
-const scratch: FullPose = {
+const scratch: FullPose & { motion?: PoseMotion } = {
   hips: { x: 0, y: 0, z: 0 },
   torso: { x: 0, y: 0, z: 0 },
   head: { x: 0, y: 0, z: 0 },
@@ -58,6 +66,7 @@ const scratch: FullPose = {
  */
 export function poseIdle(t: number): Pose {
   reset();
+  scratch.motion = { kind: 'ready', time: t };
   const breathe = Math.sin(t * 2.4);
   scratch.hips.z = -breathe * 0.035;
   scratch.torso.z = 0.08 - breathe * 0.045;
@@ -76,6 +85,7 @@ export function poseIdle(t: number): Pose {
  */
 export function poseFightStance(t: number): Pose {
   reset();
+  scratch.motion = { kind: 'ready', time: t };
   const bounce = Math.sin(t * 4.6);
   scratch.torso.z = 0.14 - bounce * 0.03;
   scratch.head.z = -0.08;
@@ -105,6 +115,7 @@ export function poseFightStance(t: number): Pose {
 
 export function poseRun(t: number, speedNorm: number): Pose {
   reset();
+  scratch.motion = { kind: 'run', time: t, speed: speedNorm };
   const speed = clamp(speedNorm, 0.15, 1.35);
   const stride = Math.sin(t * 10 * speed);
   const counter = Math.cos(t * 10 * speed);
@@ -125,6 +136,7 @@ export function poseRun(t: number, speedNorm: number): Pose {
 
 export function poseJump(): Pose {
   reset();
+  scratch.motion = { kind: 'jump' };
   scratch.torso.z = 0.18;
   scratch.armL.z = 1.25;
   scratch.armR.z = 1.35;
@@ -141,6 +153,7 @@ export function poseJump(): Pose {
 
 export function poseFall(): Pose {
   reset();
+  scratch.motion = { kind: 'fall' };
   scratch.torso.z = -0.18;
   scratch.armL.z = 1.05;
   scratch.armR.z = 0.95;
@@ -157,6 +170,7 @@ export function poseFall(): Pose {
 
 export function poseLanding(): Pose {
   reset();
+  scratch.motion = { kind: 'landing' };
   scratch.hips.z = -0.32;
   scratch.torso.z = -0.48;
   scratch.head.z = 0.26;
@@ -173,6 +187,7 @@ export function poseLanding(): Pose {
 
 export function poseHit(): Pose {
   reset();
+  scratch.motion = { kind: 'hit' };
   scratch.root.z = -0.22;
   scratch.torso.z = -0.42;
   scratch.head.z = -0.25;
@@ -189,6 +204,7 @@ export function poseHit(): Pose {
 
 export function poseTumble(t: number): Pose {
   reset();
+  scratch.motion = { kind: 'tumble', time: t };
   scratch.root.z = t * 10;
   scratch.torso.z = -0.28;
   scratch.armL.z = -0.85;
@@ -204,6 +220,7 @@ export function poseTumble(t: number): Pose {
 
 export function poseKO(): Pose {
   reset();
+  scratch.motion = { kind: 'ko' };
   scratch.root.z = 1.25;
   scratch.torso.z = -0.65;
   scratch.head.x = -0.35;
@@ -220,9 +237,30 @@ export function poseKO(): Pose {
   return scratch;
 }
 
-export function poseAttack(poseId: string, phase: number): Pose {
+export function poseAttack(poseId: string, phase: number, timing?: Pick<AttackDef, 'windup' | 'active' | 'recover'>): Pose {
   const frames = attackFrames[poseId] ?? attackFrames.finisher!;
-  return blendFrames(frames, phase);
+  let visualPhase = clamp(phase, 0, 1);
+  if (timing && visualPhase < 1) {
+    const elapsed = visualPhase * (timing.windup + timing.active + timing.recover);
+    visualPhase = elapsed < timing.windup
+      ? 0.3 * elapsed / Math.max(0.0001, timing.windup)
+      : elapsed < timing.windup + timing.active
+        ? 0.3 + 0.35 * (elapsed - timing.windup) / Math.max(0.0001, timing.active)
+        : 0.65 + 0.35 * (elapsed - timing.windup - timing.active) / Math.max(0.0001, timing.recover);
+  }
+  let jointPhase = phase;
+  if (timing) {
+    // Weapon and kick overrides share the hitbox clock with the full-body study.
+    const contactStart = poseId === 'spin' ? 0.12 : frames[1]!.at;
+    const contactEnd = poseId === 'spin' ? 0.88
+      : frames.length > 3 ? frames[frames.length - 2]!.at : contactStart;
+    jointPhase = visualPhase < 0.3 ? visualPhase / 0.3 * contactStart
+      : visualPhase < 0.65 ? lerp(contactStart, contactEnd, (visualPhase - 0.3) / 0.35)
+        : lerp(contactEnd, 1, (visualPhase - 0.65) / 0.35);
+  }
+  const pose = blendFrames(frames, jointPhase);
+  pose.motion = { kind: 'attack', phase: clamp(visualPhase, 0, 1), poseId };
+  return pose;
 }
 
 const attackFrames: Record<string, readonly AttackKeyframe[]> = {
@@ -312,6 +350,7 @@ const attackFrames: Record<string, readonly AttackKeyframe[]> = {
 };
 
 function reset(): void {
+  scratch.motion = undefined;
   for (let i = 0; i < JOINTS.length; i += 1) {
     const joint = scratch[JOINTS[i]!];
     joint.x = 0;

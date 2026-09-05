@@ -4,6 +4,7 @@ import { CHARACTERS } from '../data/characters';
 import type { CharacterDef, SaveData } from '../data/types';
 import { isCharacterUnlocked } from '../progression';
 import { toonRamp } from '../render/toon';
+import { ARENA_BACKGROUND, ARENA_PRESENTATION, applyToonPresentation } from '../render/presentation';
 import { buildCharacterRig } from '../rigs/characterBuilders';
 import type { Rig } from '../rigs/FighterRig';
 import { poseFightStance, poseIdle, poseRun } from '../rigs/poses';
@@ -170,7 +171,7 @@ export class RosterShowcase {
     // Paint the sky INTO the scene so the bloom pass (which ignores the base
     // renderer clear color) shows sky-blue instead of black behind the roster.
     this.prevBg = this.scene.background;
-    this.scene.background = new THREE.Color(COLOR_BG);
+    this.scene.background = new THREE.Color(ARENA_PRESENTATION ? ARENA_BACKGROUND : COLOR_BG);
 
     // Soft candy front-fill so the fighters pop off the bright sky (bright, not
     // a spotlight — the scene is already sunny).
@@ -222,11 +223,13 @@ export class RosterShowcase {
   }
 }
 
-/** Recolor every mesh of a locked fighter to a bright frosted pastel of its own
- * hue — a cheerful "coming soon" statue, no eyes, no gloom. */
+/** Keep locked fighters recognizable as statues without competing with the starters. */
 function frost(rig: Rig, def: CharacterDef): THREE.Material {
-  const pale = new THREE.Color(def.palette.core).lerp(new THREE.Color(0xffffff), 0.6);
-  const mat = new THREE.MeshToonMaterial({ color: pale.getHex(), gradientMap: toonRamp() });
+  const color = ARENA_PRESENTATION
+    ? new THREE.Color(0x26374e).lerp(new THREE.Color(def.palette.core), 0.035)
+    : new THREE.Color(def.palette.core).lerp(new THREE.Color(0xffffff), 0.6);
+  const mat = new THREE.MeshToonMaterial({ color: color.getHex(), gradientMap: toonRamp() });
+  applyToonPresentation(mat, 'stage');
   rig.root.traverse((o) => {
     if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).material = mat;
   });

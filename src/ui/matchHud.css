@@ -1,0 +1,75 @@
+.bf-arena .bf-match-cards {
+  position: absolute;
+  left: calc(50% + (var(--safe-l) - var(--safe-r)) / 2);
+  bottom: calc(var(--safe-b) + 22px);
+  transform: translateX(-50%);
+  width: min(calc(100% - 44px - var(--safe-l) - var(--safe-r)), calc(var(--match-players) * 256px));
+  display: grid;
+  grid-template-columns: repeat(var(--match-players), minmax(0, 1fr));
+  gap: 12px;
+}
+
+.bf-arena .bf-match-card {
+  min-width: 0;
+  height: 104px;
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr);
+  background: linear-gradient(105deg, #0d172bf5, #1e3352ed);
+  border: 1px solid #6580a245;
+  border-bottom: 4px solid var(--fighter);
+  box-shadow: 0 6px 20px #0004;
+}
+
+.bf-arena .bf-match-card.is-local { border-top-color: #eff6ff; }
+.bf-arena .bf-match-card .bf-hud-portrait { width: auto; }
+.bf-arena .bf-match-card .bf-hud-readout { position: relative; min-width: 0; padding: 5px 10px 7px; }
+.bf-arena .bf-match-card .bf-hud-name { min-width: 0; font-size: 13px; letter-spacing: 0.1em; }
+.bf-arena .bf-match-card .bf-damage { font-size: 43px; line-height: 1.02; }
+.bf-arena .bf-match-card .bf-stocks { min-height: 7px; }
+.bf-arena .bf-match-identity { display: flex; gap: 5px; align-items: center; min-width: 0; margin-bottom: 3px; }
+.bf-arena .bf-match-nickname { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #c6d5eb; font: 600 11px Barlow, sans-serif; }
+.bf-arena .bf-match-you { color: #fff; background: #48607e; border-radius: 2px; padding: 1px 3px; font: 800 8px Barlow, sans-serif; }
+.bf-arena .bf-match-status { position: absolute; right: 8px; bottom: 5px; color: #b5c6dc; font: 900 12px var(--arena-display); letter-spacing: 0.12em; }
+.bf-arena .bf-match-card.is-out { border-bottom-color: #52647d; background: #0d172be8; }
+.bf-arena .bf-match-card.is-out .bf-hud-portrait { filter: saturate(0.2) brightness(0.65); }
+.bf-arena .bf-match-card.is-out .bf-damage { color: #a1b1c7 !important; }
+.bf-arena .bf-match-hud .bf-keyhints { left: 50%; right: auto; bottom: calc(var(--safe-b) + 138px); transform: translateX(-50%); display: flex; }
+
+@media (max-width: 1050px) {
+  .bf-arena .bf-match-cards { gap: 8px; width: calc(100% - 32px - var(--safe-l) - var(--safe-r)); }
+  .bf-arena .bf-match-card { grid-template-columns: 62px minmax(0, 1fr); height: 88px; }
+  .bf-arena .bf-match-card .bf-hud-readout { padding: 4px 8px 6px; }
+  .bf-arena .bf-match-card .bf-hud-name { font-size: 11px; }
+  .bf-arena .bf-match-card .bf-damage { font-size: 35px; }
+  .bf-arena .bf-match-hud .bf-keyhints { bottom: calc(var(--safe-b) + 120px); }
+}
+
+@media (pointer: coarse), (max-width: 1000px) and (max-height: 520px) {
+  .bf-arena .bf-match-cards { top: calc(var(--safe-t) + 8px); bottom: auto; gap: 6px; width: calc(100% - 24px - var(--safe-l) - var(--safe-r)); }
+  .bf-arena .bf-match-card { height: 68px; grid-template-columns: 48px minmax(0, 1fr); border-bottom-width: 3px; }
+  .bf-arena .bf-match-card .bf-hud-readout { padding: 3px 7px 5px; }
+  .bf-arena .bf-match-card .bf-hud-name { font-size: 10px; line-height: 1; letter-spacing: 0.07em; }
+  .bf-arena .bf-match-card .bf-damage { font-size: 28px; line-height: 1; }
+  .bf-arena .bf-match-card .bf-hud-player { font-size: 13px; }
+  .bf-arena .bf-match-card .bf-stocks { margin-top: 2px; min-height: 5px; gap: 3px; }
+  .bf-arena .bf-match-card .bf-stock { width: 7px; height: 5px; }
+  .bf-arena .bf-match-identity { margin-bottom: 2px; gap: 3px; }
+  .bf-arena .bf-match-nickname { font-size: 9px; line-height: 1; }
+  .bf-arena .bf-match-you { font-size: 7px; padding: 1px 2px; }
+  .bf-arena .bf-match-status { font-size: 9px; bottom: 3px; right: 5px; }
+  .bf-arena .bf-match-hud .bf-keyhints { top: calc(var(--safe-t) + 84px); bottom: auto; }
+  .bf-arena .bf-match-hud .bf-banner { top: max(25%, calc(var(--safe-t) + 88px)); }
+}
+
+@media (max-width: 560px) and (orientation: portrait) {
+  .bf-arena .bf-match-cards { top: calc(var(--safe-t) + 8px); bottom: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .bf-arena .bf-match-card { height: 72px; grid-template-columns: 48px minmax(0, 1fr); }
+  .bf-arena .bf-match-card .bf-hud-readout { padding: 4px 7px; }
+  .bf-arena .bf-match-card .bf-damage { font-size: 29px; }
+  .bf-arena .bf-match-hud .bf-keyhints { top: calc(var(--safe-t) + 165px); bottom: auto; flex-wrap: wrap; justify-content: center; width: max-content; max-width: calc(100% - 24px); }
+  .bf-arena .bf-match-hud .bf-banner { top: max(26%, calc(var(--safe-t) + 166px)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bf-arena .bf-match-card .bf-damage { animation: none; }
+}

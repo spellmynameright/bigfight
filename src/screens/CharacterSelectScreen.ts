@@ -9,6 +9,7 @@ import { button, el, uiRoot } from '../ui/dom';
 import { characterPortrait } from '../ui/portraits';
 import { buildRosterGrid, type RosterGrid } from '../ui/rosterGrid';
 import type { Screen } from './Screen';
+import { ARENA_PRESENTATION } from '../render/presentation';
 
 /** The roster board is built for the game we're growing into. */
 export const ROSTER_CAPACITY = 20;
@@ -24,6 +25,7 @@ export class CharacterSelectScreen implements Screen {
   private nameEl: HTMLElement | null = null;
   private tagEl: HTMLElement | null = null;
   private statsEl: HTMLElement | null = null;
+  private portraitEl: HTMLImageElement | null = null;
   private selectedId = 'volt';
 
   constructor(
@@ -48,6 +50,12 @@ export class CharacterSelectScreen implements Screen {
     });
 
     const bar = el('div', 'bf-roster-bar', this.root);
+    if (ARENA_PRESENTATION) {
+      const portrait = el('div', 'bf-selection-portrait', bar);
+      this.portraitEl = el('img', '', portrait);
+      this.portraitEl.alt = '';
+      el('span', 'bf-selection-player', portrait).textContent = 'P1';
+    }
     const who = el('div', 'bf-roster-who', bar);
     this.nameEl = el('h2', 'bf-roster-name', who);
     this.tagEl = el('p', 'bf-roster-tagline', who);
@@ -80,6 +88,10 @@ export class CharacterSelectScreen implements Screen {
     if (sfx) events.emit('ui', { kind: 'move' });
     this.grid?.setSelected(id);
     const def = characterById(id);
+    if (this.portraitEl) {
+      this.portraitEl.src = characterPortrait(id);
+      this.portraitEl.parentElement?.style.setProperty('--fighter', characterCssColor(def));
+    }
     if (this.nameEl) this.nameEl.textContent = def.name.toUpperCase();
     if (this.tagEl) this.tagEl.textContent = def.tagline;
     if (this.statsEl) {
@@ -103,6 +115,7 @@ export class CharacterSelectScreen implements Screen {
     this.root?.remove();
     this.root = null;
     this.grid = null;
+    this.portraitEl = null;
   }
 
   update(): void {}

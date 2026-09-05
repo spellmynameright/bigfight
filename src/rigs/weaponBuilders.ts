@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { WeaponDef } from '../data/types';
 import { attachGlow } from '../render/GlowSprites';
 import { makeToonMaterial } from '../render/toon';
+import { applyPresentation } from '../render/presentation';
 
 const BOX = new THREE.BoxGeometry(1, 1, 1);
 const SPHERE = new THREE.SphereGeometry(1, 20, 14);
@@ -81,6 +82,7 @@ export function buildWeaponModel(weapon: WeaponDef): THREE.Group {
       break;
   }
 
+  applyPresentation(group, 'weapon');
   return group;
 }
 

@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { events } from '../core/events';
 import type { Game } from '../Game';
 import { characterById } from '../data/characters';
-import { poseIdle, poseRun } from '../rigs/poses';
+import { poseFightStance, poseIdle, poseRun } from '../rigs/poses';
+import { ARENA_PRESENTATION } from '../render/presentation';
 import { buildCharacterRig } from '../rigs/characterBuilders';
 import type { Rig } from '../rigs/FighterRig';
 import { button, el, uiRoot } from '../ui/dom';
@@ -19,6 +20,7 @@ export class TitleScreen implements Screen {
   private rigs: Rig[] = [];
   private t = 0;
   private started = false;
+  private podiums: THREE.Mesh[] = [];
 
   constructor(private readonly onPlay: () => void) {}
 
@@ -35,6 +37,25 @@ export class TitleScreen implements Screen {
       rig.root.position.set(spot.x, -3.6, 8);
       rig.setFacing(spot.x > 0 ? -1 : 1);
       rig.setShadow(null, 0);
+      if (ARENA_PRESENTATION) {
+        rig.root.rotation.y = -Math.PI / 2 + (spot.x > 0 ? -0.2 : 0.2);
+        rig.root.scale.setScalar(1.35);
+        const podium = new THREE.Mesh(
+          new THREE.CylinderGeometry(1.3, 1.42, 0.18, 48),
+          new THREE.MeshStandardMaterial({ color: 0x263851, metalness: 0.55, roughness: 0.4 }),
+        );
+        podium.position.set(spot.x, -3.7, 8);
+        this.group.add(podium);
+        this.podiums.push(podium);
+        const rim = new THREE.Mesh(
+          new THREE.TorusGeometry(1.26, 0.022, 6, 48),
+          new THREE.MeshBasicMaterial({ color: def.palette.core, toneMapped: false }),
+        );
+        rim.rotation.x = -Math.PI / 2;
+        rim.position.set(spot.x, -3.6, 8);
+        this.group.add(rim);
+        this.podiums.push(rim);
+      }
       this.group.add(rig.root);
       this.rigs.push(rig);
     }
@@ -47,6 +68,7 @@ export class TitleScreen implements Screen {
     logo.innerHTML = PISTOL_SVG;
     const word = el('div', 'bf-logo-word', this.root);
     word.innerHTML = '<span>BIG</span> <span class="bf-logo-fight">FIGHT</span>';
+    if (ARENA_PRESENTATION) el('div', 'bf-title-kicker', this.root).textContent = '1-4 PLAYERS · PLATFORM FIGHTER';
     el('div', 'bf-tap-hint', this.root).textContent = game.input.isTouch ? 'TAP TO FIGHT' : 'PRESS ANY KEY';
 
     const start = (): void => {
@@ -71,6 +93,12 @@ export class TitleScreen implements Screen {
     game.renderer.scene.remove(this.group);
     for (const rig of this.rigs) rig.dispose();
     this.rigs = [];
+    for (const podium of this.podiums) {
+      podium.geometry.dispose();
+      (podium.material as THREE.Material).dispose();
+    }
+    this.podiums = [];
+    this.group.clear();
     this.root?.remove();
     this.root = null;
   }
@@ -80,8 +108,9 @@ export class TitleScreen implements Screen {
     const blend = 1 - Math.exp(-14 * dt);
     for (let i = 0; i < this.rigs.length; i += 1) {
       const rig = this.rigs[i]!;
-      rig.setPose(i === 0 ? poseRun(this.t, 0.7) : poseIdle(this.t + i * 1.7), blend);
+      rig.setPose(ARENA_PRESENTATION ? poseFightStance(this.t + i * 1.7) : i === 0 ? poseRun(this.t, 0.7) : poseIdle(this.t + i * 1.7), blend);
       rig.update(dt);
+      if (ARENA_PRESENTATION) rig.root.rotation.y = -Math.PI / 2 + (i === 2 ? -0.2 : 0.2);
     }
     // Keyboard start.
     if (game.input.state.anyPressed && this.t > 0.5) {

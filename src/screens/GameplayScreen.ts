@@ -38,6 +38,7 @@ import { PhysicsWorld } from '../physics/PhysicsWorld';
 import { CameraRig } from '../render/CameraRig';
 import { Particles } from '../render/Particles';
 import { Trails } from '../render/Trails';
+import { ARENA_PRESENTATION } from '../render/presentation';
 import { Boss } from '../entities/Boss';
 import { GiantEagle } from '../entities/bosses/GiantEagle';
 import { GiantGhost } from '../entities/bosses/GiantGhost';
@@ -284,7 +285,12 @@ export class GameplayScreen implements Screen {
       }
     }
 
-    this.hud = new Hud({ keyHints: !game.input.isTouch });
+    this.hud = new Hud({
+      keyHints: !game.input.isTouch,
+      characterId: match.players[this.localSlot]?.characterId ?? this.opts.characterId,
+      slot: this.localSlot,
+      fighters: isVersus(match.mode) ? match.players : undefined,
+    });
     this.damageNumbers = new DamageNumbers(game.renderer.scene);
 
     const players = this.players;
@@ -534,8 +540,15 @@ export class GameplayScreen implements Screen {
     this.trails?.update(dt);
     this.damageNumbers?.update(dt);
     this.updateCountdownView(game);
-    const local = this.localPlayer;
-    if (local) this.hud?.set(local.damage, local.stocks);
+    if (ARENA_PRESENTATION && isVersus(this.match.mode) && this.players.length > 1) {
+      for (let slot = 0; slot < this.players.length; slot += 1) {
+        const player = this.players[slot]!;
+        this.hud?.setPlayer(slot, player.damage, player.stocks, this.matchState.slots[slot]!.eliminated);
+      }
+    } else {
+      const local = this.localPlayer;
+      if (local) this.hud?.set(local.damage, local.stocks);
+    }
     if (DEBUG) this.updateDebug(dt);
     // Navigation/persist callbacks never fire mid-resim; the 2.2s end beat
     // vastly exceeds the rollback window, so the deferral can't diverge.

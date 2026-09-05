@@ -10,18 +10,20 @@ import { toonRamp } from './render/toon';
 import { poseAttack, poseFightStance, poseRun, type Pose } from './rigs/poses';
 import { PedestalRoom } from './mockup/PedestalRoom';
 import { ALL_CHARS, buildMockRig, type CharId, type MockRig } from './mockup/rigs';
+import { ARENA_PRESENTATION, addPresentationLights, applyPresentation, configurePresentationRenderer } from './render/presentation';
+import './mockup/presentation.css';
+
+document.documentElement.classList.add('presentation-lab');
+document.documentElement.classList.toggle('arena-lab', ARENA_PRESENTATION);
 
 const canvas = document.getElementById('lab') as HTMLCanvasElement;
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-renderer.setClearColor(0x8fd3ff);
-renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.setClearColor(ARENA_PRESENTATION ? 0x10223b : 0x8fd3ff);
+configurePresentationRenderer(renderer);
 
 const scene = new THREE.Scene();
-scene.add(new THREE.HemisphereLight(0xd8efff, 0xffe3b8, 1.15));
-const sun = new THREE.DirectionalLight(0xffffff, 1.6);
-sun.position.set(8, 18, 12);
-scene.add(sun);
+addPresentationLights(scene);
 
 const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
 camera.position.set(0, 1.2, 7);
@@ -30,9 +32,19 @@ camera.lookAt(0, 0.9, 0);
 // Ground disc so scale reads.
 const ground = new THREE.Mesh(
   new THREE.CylinderGeometry(2.4, 2.4, 0.18, 36),
-  new THREE.MeshToonMaterial({ color: 0x9fe098, gradientMap: toonRamp() }),
+  new THREE.MeshToonMaterial({ color: ARENA_PRESENTATION ? 0x536b85 : 0x9fe098, gradientMap: toonRamp() }),
 );
 ground.position.y = -0.09;
+if (ARENA_PRESENTATION) {
+  const rim = new THREE.Mesh(
+    new THREE.TorusGeometry(2.36, 0.025, 8, 64),
+    new THREE.MeshBasicMaterial({ color: 0x90c8f8, toneMapped: false }),
+  );
+  rim.rotation.x = Math.PI / 2;
+  rim.position.y = 0.1;
+  ground.add(rim);
+  applyPresentation(ground, 'stage');
+}
 scene.add(ground);
 
 // The online flow shares one visual language: a lit solo pedestal for fighter
@@ -52,6 +64,7 @@ selectionRing.rotation.x = Math.PI / 2;
 selectionRing.position.y = 0.02;
 selectionPedestal.add(selectionRing);
 selectionPedestal.visible = false;
+applyPresentation(selectionPedestal, 'stage');
 scene.add(selectionPedestal);
 
 const waitingColors = [0x1a9fe8, 0xff5a8a, 0xffc93e, 0x4ec95c] as const;
@@ -79,7 +92,8 @@ window.addEventListener('resize', resize);
 // ---------------------------------------------------------------------------
 // State
 // ---------------------------------------------------------------------------
-let chr: CharId = 'volt';
+const initialFighter = new URLSearchParams(window.location.search).get('fighter');
+let chr: CharId = ALL_CHARS.includes(initialFighter as CharId) ? initialFighter as CharId : 'volt';
 let rig: MockRig | null = null;
 const wrap = new THREE.Group();
 scene.add(wrap);
@@ -92,6 +106,46 @@ let attackQueue: { poseId: string; duration: number }[] = [];
 let attackPhase = 0;
 
 const label = document.getElementById('label')!;
+
+const presentationBar = document.createElement('nav');
+presentationBar.className = 'lab-presentation';
+presentationBar.setAttribute('aria-label', 'Visual preview');
+const presentationTitle = document.createElement('span');
+presentationTitle.className = 'lab-presentation-title';
+presentationTitle.textContent = 'CHARACTER LAB';
+presentationBar.appendChild(presentationTitle);
+const lookLinks: { link: HTMLAnchorElement; look: string }[] = [];
+for (const [look, title] of [['classic', 'Current look'], ['arena', 'Arena look']] as const) {
+  const link = document.createElement('a');
+  link.textContent = title;
+  const active = ARENA_PRESENTATION ? look === 'arena' : look === 'classic';
+  if (active) link.setAttribute('aria-current', 'page');
+  presentationBar.appendChild(link);
+  lookLinks.push({ link, look });
+}
+const playLink = document.createElement('a');
+playLink.className = 'lab-play-preview';
+playLink.textContent = 'PLAY ARENA PREVIEW';
+const playURL = new URL(import.meta.env.BASE_URL, window.location.origin);
+playURL.searchParams.set('look', 'arena');
+playLink.href = playURL.href;
+presentationBar.appendChild(playLink);
+const galleryLink = document.createElement('a');
+galleryLink.textContent = 'ASSET GALLERY';
+galleryLink.href = `${import.meta.env.BASE_URL}assets.html?look=${ARENA_PRESENTATION ? 'arena' : 'classic'}`;
+presentationBar.appendChild(galleryLink);
+document.body.appendChild(presentationBar);
+
+function syncReviewLinks(): void {
+  const currentURL = new URL(window.location.href);
+  currentURL.searchParams.set('fighter', chr);
+  window.history.replaceState(null, '', currentURL);
+  for (const { link, look } of lookLinks) {
+    const url = new URL(currentURL);
+    url.searchParams.set('look', look);
+    link.href = url.href;
+  }
+}
 
 /** New fighters awaiting family sign-off in the Lab (not yet reviewed). */
 const NEW_CHARS: readonly CharId[] = ['rex', 'frost'];
@@ -107,11 +161,13 @@ function labelFor(id: CharId): string {
 function show(): void {
   rig?.dispose();
   rig = buildMockRig(chr);
+  applyPresentation(rig.root, 'fighter');
   wrap.clear();
   wrap.add(rig.root);
   wrap.rotation.y = -Math.PI / 2 + 0.2;
   attackQueue = [];
   label.textContent = labelFor(chr);
+  syncReviewLinks();
 }
 show();
 

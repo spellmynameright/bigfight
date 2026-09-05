@@ -15,6 +15,7 @@ import {
   AUTO_QUALITY_FRAME_MS,
 } from '../config';
 import { Bloom } from './Bloom';
+import { ARENA_BACKGROUND, ARENA_PRESENTATION, addPresentationEnvironment, addPresentationLights, configurePresentationRenderer } from './presentation';
 
 /** Window over which frame time is averaged for the auto-downgrade check. */
 const SAMPLE_WINDOW_S = 5;
@@ -48,17 +49,16 @@ export class Renderer implements IRenderer {
       powerPreference: 'high-performance',
       stencil: false,
     });
-    this.renderer.setClearColor(COLOR_BG, 1);
-    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    const background = ARENA_PRESENTATION ? ARENA_BACKGROUND : COLOR_BG;
+    this.renderer.setClearColor(background, 1);
+    configurePresentationRenderer(this.renderer);
 
     this.scene = new THREE.Scene();
-    this.scene.fog = new THREE.FogExp2(COLOR_BG, 0.006);
+    if (ARENA_PRESENTATION) this.scene.background = new THREE.Color(background);
+    this.scene.fog = new THREE.FogExp2(background, 0.006);
 
-    // Bright-cartoon lighting: soft sky/ground fill + one warm sun key.
-    const hemi = new THREE.HemisphereLight(0xd8efff, 0xffe3b8, 1.15);
-    const sun = new THREE.DirectionalLight(0xffffff, 1.6);
-    sun.position.set(8, 18, 12);
-    this.scene.add(hemi, sun);
+    addPresentationLights(this.scene);
+    addPresentationEnvironment(this.scene, this.renderer);
 
     this.camera = new THREE.PerspectiveCamera(CAM_FOV, 1, 0.1, 200);
     this.camera.position.set(0, 0, 22);

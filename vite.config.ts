@@ -34,6 +34,8 @@ export default defineConfig({
         main: 'index.html',
         // Character design lab — unlinked design-review page (mockup.html).
         mockup: 'mockup.html',
+        assets: 'assets.html',
+        styles: 'styles.html',
       },
     },
   },

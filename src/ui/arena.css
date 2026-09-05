@@ -1,0 +1,370 @@
+@font-face { font-family: Barlow; src: url('/fonts/barlow-600.ttf') format('truetype'); font-weight: 400 600; font-display: swap; }
+@font-face { font-family: Barlow; src: url('/fonts/barlow-700.ttf') format('truetype'); font-weight: 700 900; font-display: swap; }
+@font-face { font-family: 'Barlow Condensed'; src: url('/fonts/barlow-condensed-800.ttf') format('truetype'); font-weight: 700 900; font-display: swap; }
+@font-face { font-family: 'Barlow Condensed'; src: url('/fonts/barlow-condensed-900-italic.ttf') format('truetype'); font-weight: 800 900; font-style: italic; font-display: swap; }
+
+/* Optional arena presentation. The current look remains available with ?look=classic. */
+:root.bf-arena {
+  --bg: #101a30;
+  --panel: #f3f6fb;
+  --panel-border: #ffffff;
+  --neon-cyan: #287bff;
+  --neon-pink: #f04455;
+  --neon-yellow: #ffc94b;
+  --neon-green: #197b5c;
+  --neon-violet: #6758ce;
+  --text: #152039;
+  --text-dim: #56647b;
+  --arena-ink: #0b1224;
+  --arena-steel: #7f93b7;
+  --arena-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+}
+.bf-arena body { font-family: Barlow, 'Segoe UI', sans-serif; }
+.bf-arena button, .bf-arena input, .bf-arena select, .bf-arena .bf-kbd { font-family: Barlow, 'Segoe UI', sans-serif; }
+.bf-arena :is(.bf-title, .bf-map-title, .bf-select-title, .bf-online-title, .bf-mode-name, .bf-roster-name, .bf-banner, .bf-damage, .bf-logo-word) {
+  font-family: var(--arena-display);
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 0.025em;
+}
+.bf-arena :is(.bf-map-screen, .bf-select-screen, .bf-market-screen) {
+  background: radial-gradient(ellipse at 35% 0%, #314b70 0%, #192943 40%, #0b1224 100%);
+}
+.bf-arena :is(.bf-map-screen, .bf-select-screen, .bf-market-screen)::before {
+  z-index: 0;
+  background: linear-gradient(125deg, transparent 56%, #ffffff03 56% 74%, transparent 74%);
+}
+.bf-arena :is(.bf-map-screen, .bf-select-screen, .bf-market-screen) > * { position: relative; }
+.bf-arena :is(.bf-map-header, .bf-select-header) {
+  min-height: 62px;
+  flex: none;
+  justify-content: flex-start;
+  gap: 18px;
+  padding: 0 0 12px;
+  border-bottom: 1px solid #8ba4cc38;
+}
+.bf-arena :is(.bf-map-title, .bf-select-title, .bf-online-title) {
+  font-size: clamp(27px, 4vw, 44px);
+  -webkit-text-stroke: 0;
+  text-shadow: 0 3px 0 #050c18;
+  line-height: 1;
+}
+.bf-arena .bf-map-header > :last-child:not(h1) { margin-left: auto; }
+.bf-arena .bf-button {
+  border: 1px solid #ffffff38;
+  border-radius: 4px;
+  padding: 13px 24px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  background: linear-gradient(120deg, #2f83ff, #1855bd);
+  box-shadow: 0 3px 0 #091328, inset 0 1px 0 #ffffff2b;
+  transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+}
+.bf-arena .bf-button-green { background: linear-gradient(120deg, #f64c56, #be203e); }
+.bf-arena .bf-button-red { background: linear-gradient(120deg, #b93950, #81233b); }
+.bf-arena .bf-button-yellow { background: linear-gradient(120deg, #ffda6e, #f3b934); color: #30240a; }
+.bf-arena .bf-button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 5px 0 #091328, inset 0 1px 0 #ffffff55; }
+.bf-arena .bf-button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #091328; }
+.bf-arena .bf-button:disabled { opacity: 0.6; }
+.bf-arena .bf-button-round { width: 44px; height: 44px; flex: none; padding: 0; border-radius: 4px; background: #243957; }
+.bf-arena .bf-button-big { font-family: var(--arena-display); font-size: 27px; font-style: italic; letter-spacing: 0.025em; padding: 12px 28px; }
+.bf-arena #ui button:focus-visible, .bf-arena #ui .bf-kb-focus {
+  outline: 3px solid #ffc94b;
+  outline-offset: 4px;
+  box-shadow: 0 0 0 6px #0b1224;
+}
+.bf-arena .bf-modal-backdrop { background: #050b19c7; }
+.bf-arena .bf-panel {
+  border-radius: 6px;
+  border-top: 5px solid #f04455;
+  box-shadow: 0 20px 70px #0008, 0 1px 0 #fff inset;
+  padding: 26px 30px;
+  animation: bf-arena-enter 180ms ease-out;
+}
+.bf-arena .bf-title { font-size: 42px; letter-spacing: 0.025em; }
+.bf-arena .bf-title-win { color: #167554; }
+.bf-arena .bf-title-lose { color: #bd2540; }
+.bf-arena .bf-hint { font-size: 15px; line-height: 1.4; }
+.bf-arena .bf-loot-row { border-radius: 3px; background: #e4eaf3; padding: 10px 12px; }
+.bf-arena .bf-loot-value { color: #126b4c; }
+.bf-arena .bf-loot-icon { font-family: var(--arena-display); font-size: 25px; }
+.bf-arena .bf-results .bf-panel { border-top-color: #ffc94b; }
+.bf-arena .bf-unlock-row { padding: 8px 10px; margin-top: 8px; background: #ffdf85; color: #493407; font-weight: 800; }
+@keyframes bf-arena-enter { from { opacity: 0; transform: translateY(10px); } }
+
+/* Wordmark, fighter lineup, and one deliberate slash across the title. */
+.bf-arena .bf-title-screen { padding-top: clamp(24px, 5dvh, 48px); }
+.bf-arena .bf-title-screen::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(114deg, transparent 48%, #668abb0b 48% 70%, transparent 70%), linear-gradient(#0b122488, transparent 50%, #060d1e77);
+}
+.bf-arena .bf-logo { width: clamp(68px, 10vw, 110px); animation: none; filter: drop-shadow(0 5px 6px #0004); }
+.bf-arena .bf-logo-word {
+  position: relative; margin-top: -4px; font-size: clamp(84px, 14vw, 172px); line-height: 0.94;
+  color: #fff; -webkit-text-stroke: 2px #0b1224; text-shadow: 0 7px 0 #060b17;
+  transform: rotate(-4deg); padding: 0 16px 14px;
+}
+.bf-arena .bf-logo-word::after {
+  content: ''; position: absolute; height: 8px; bottom: 0; left: 4%; right: 1%;
+  background: linear-gradient(90deg, #f04455 0% 62%, #ffc94b 62%);
+  transform: skewX(-35deg);
+}
+.bf-arena .bf-logo-fight { color: #ffc94b; }
+.bf-arena .bf-title-kicker { color: #adc0df; font-weight: 700; font-size: 11px; letter-spacing: 0.32em; margin-top: 20px; }
+.bf-arena .bf-tap-hint {
+  position: absolute; bottom: max(4dvh, 16px); margin: 0; padding: 10px 34px;
+  font-size: 15px; color: #f5f8ff; letter-spacing: 0.22em; text-shadow: 0 2px 2px #0008;
+  border-top: 1px solid #a8c4ec45; border-bottom: 1px solid #a8c4ec45;
+  animation: bf-arena-pulse 2.5s ease-in-out infinite;
+}
+@keyframes bf-arena-pulse { 50% { opacity: 0.65; } }
+.bf-arena .bf-update-pill { font-size: 12px; padding: 9px 12px; animation: none; }
+.bf-arena .bf-mode-screen::before { background: linear-gradient(#0b122445, transparent 40%, #070e20d9); }
+.bf-arena .bf-mode-cards { width: min(1080px, 90vw); gap: 22px; padding-bottom: 3dvh; }
+.bf-arena .bf-mode-card {
+  align-items: flex-start; text-align: left; flex: 1; min-width: 0; gap: 6px;
+  border: 1px solid #ffffff66; border-left: 6px solid #fff; border-radius: 3px;
+  padding: clamp(18px, 3dvh, 30px) clamp(20px, 3vw, 40px);
+  box-shadow: 0 10px 25px #0005; transform: skewX(-5deg);
+  animation: bf-arena-enter 240ms ease-out backwards;
+}
+.bf-arena .bf-mode-card-campaign { background: linear-gradient(120deg, #f04455, #a61e3e); }
+.bf-arena .bf-mode-card-online { background: linear-gradient(120deg, #287bff, #1840a0); animation-delay: 60ms; }
+.bf-arena .bf-mode-card::before { inset: 0; background: linear-gradient(130deg, transparent 64%, #ffffff10 64% 80%, transparent 80%); animation: none; }
+.bf-arena .bf-mode-card > * { transform: skewX(5deg); }
+.bf-arena .bf-mode-card:hover { transform: skewX(-5deg) translateY(-5px); filter: brightness(1.08); }
+.bf-arena .bf-mode-card:active { transform: skewX(-5deg) translateY(1px); }
+.bf-arena .bf-mode-name { font-size: clamp(40px, 5.2vw, 70px); line-height: 0.95; -webkit-text-stroke: 0; text-shadow: 0 3px 0 #0004; }
+.bf-arena .bf-mode-chip { color: #fff; background: #0b122455; font-size: 10px; letter-spacing: 0.16em; padding: 4px 8px; border-radius: 2px; box-shadow: none; }
+.bf-arena .bf-mode-tag { font-size: 15px; font-weight: 600; text-shadow: none; }
+
+/* Tight portrait boards with a strong selection edge and a real fighter identity. */
+.bf-arena .bf-roster-grid { gap: 5px; padding: 12px 5px; max-width: 1440px; }
+.bf-arena .bf-tile {
+  border: 1px solid #8aa2c04a; border-radius: 2px; background: #0c1527;
+  box-shadow: 0 3px 8px #0004;
+}
+.bf-arena .bf-tile-portrait { background: linear-gradient(140deg, color-mix(in srgb, var(--card) 85%, #fff), color-mix(in srgb, var(--card) 45%, #122443)); }
+.bf-arena .bf-tile-portrait::before { content: ''; position: absolute; inset: 0; background: linear-gradient(125deg, transparent 55%, #fff2 55% 68%, transparent 68%); }
+.bf-arena .bf-tile-face { filter: drop-shadow(3px 5px 2px #07102155); transition: transform 150ms ease-out; }
+.bf-arena .bf-tile:hover { transform: none; }
+.bf-arena .bf-tile:hover:not(:disabled) .bf-tile-face { transform: scale(1.05); }
+.bf-arena .bf-tile-name { font-family: var(--arena-display); font-size: clamp(11px, 1.3vw, 17px); line-height: 1.15; letter-spacing: 0.05em; padding: 5px 2px; background: #0b1224; }
+.bf-arena .bf-weapon-screen .bf-tile-name { font-size: clamp(9px, 1vw, 13px); letter-spacing: 0.025em; }
+.bf-arena .bf-tile-selected { border-color: #ffc94b; box-shadow: 0 0 0 2px #ffc94b, 0 7px 14px #0005; transform: none; z-index: 2; }
+.bf-arena .bf-tile-selected .bf-tile-name { color: #101828; background: #ffc94b; }
+.bf-arena .bf-tile-locked .bf-tile-portrait { background: linear-gradient(145deg, #2b3d59, #162238); }
+.bf-arena .bf-tile-locked .bf-tile-face { filter: grayscale(1) brightness(0.17); opacity: 0.8; }
+.bf-arena .bf-tile-locked .bf-tile-glyph { font-family: var(--arena-display); color: #7f93b7; text-shadow: 0 2px 0 #0009; }
+.bf-arena .bf-tile-locked:hover, .bf-arena .bf-tile-future:hover { transform: none; }
+.bf-arena .bf-tile-future { opacity: 1; border-color: #566b8c30; background: #111d31; box-shadow: none; }
+.bf-arena .bf-tile-future .bf-tile-portrait { background: linear-gradient(145deg, #1c2c44, #131f34); }
+.bf-arena .bf-tile-future .bf-tile-portrait::before { opacity: 0.12; }
+.bf-arena .bf-tile-future .bf-tile-glyph { font-family: var(--arena-display); color: #607492; font-size: 34px; opacity: 0.6; text-shadow: none; }
+.bf-arena .bf-tile-future .bf-tile-name { background: #101b2e; }
+.bf-arena .bf-tile-taken .bf-tile-face { filter: saturate(0.25) brightness(0.5); }
+.bf-arena .bf-tile-claim { border-radius: 2px; font-size: 9px; padding: 3px 6px; }
+.bf-arena .bf-roster-bar { flex: none; min-height: 100px; padding: 10px 16px 10px 0; border: 0; border-radius: 3px; gap: 18px; background: #f3f6fb; box-shadow: 0 8px 24px #0005; overflow: hidden; }
+.bf-arena .bf-selection-portrait { --fighter: #287bff; align-self: stretch; position: relative; width: 120px; flex: none; margin: -10px 0; background: linear-gradient(130deg, var(--fighter), #14243e); clip-path: polygon(0 0, 100% 0, 85% 100%, 0 100%); }
+.bf-arena .bf-selection-portrait img { position: absolute; width: 110%; height: 110%; left: -5%; bottom: -6%; object-fit: contain; }
+.bf-arena .bf-selection-player { position: absolute; bottom: 5px; left: 8px; font-family: var(--arena-display); font-weight: 900; font-style: italic; color: white; font-size: 24px; text-shadow: 0 2px 3px #0009; }
+.bf-arena .bf-selection-weapon img { width: 88%; height: 88%; left: 0; bottom: 5%; }
+.bf-arena .bf-roster-name { font-size: clamp(28px, 3.5vw, 45px); line-height: 1; padding-bottom: 4px; }
+.bf-arena .bf-roster-tagline { font-size: 13px; line-height: 1.3; white-space: normal; }
+.bf-arena .bf-roster-stats { grid-template-columns: auto minmax(65px, 135px); gap: 5px 8px; }
+.bf-arena .bf-stat-label { font-size: 10px; color: #536279; letter-spacing: 0.07em; }
+.bf-arena .bf-stat-track { height: 7px; border-radius: 0; background: #d4dce8; }
+.bf-arena .bf-stat-fill { border-radius: 0; background: linear-gradient(90deg, #246ae0, #49a1ff); }
+
+/* Campaign path and earned gear retain their progression information. */
+.bf-arena .bf-gold-chip, .bf-arena .bf-mat-chip { border-radius: 3px; background: #f3f6fb; box-shadow: 0 3px 0 #091328; color: #5b4409; }
+.bf-arena .bf-map-path { align-items: center; gap: 10px; padding: 28px 12px; scrollbar-width: thin; scrollbar-color: #587299 #122039; }
+.bf-arena .bf-map-node { min-width: 108px; gap: 12px; position: relative; }
+.bf-arena .bf-map-node:not(:last-child)::after { content: ''; width: 42px; height: 2px; position: absolute; top: 39px; left: 87px; background: #657e9f66; }
+.bf-arena .bf-level { width: 76px; height: 76px; border-radius: 8px; border: 2px solid #718bad; background: linear-gradient(145deg, #334f75, #172942); font: italic 900 36px var(--arena-display); box-shadow: 0 6px 0 #080f20; }
+.bf-arena .bf-level-next { background: linear-gradient(145deg, #ffe294, #f3b934); border-color: #fff3d2; color: #33250a; box-shadow: 0 6px 0 #080f20, 0 0 22px #ffc94b25; animation: none; }
+.bf-arena .bf-level-beaten { background: #196548; border-color: #67be96; }
+.bf-arena .bf-level-locked { filter: none; background: #18263c; border-color: #455a75; color: #7287a6; }
+.bf-arena .bf-level-boss { border-color: #e7765e; }
+.bf-arena .bf-level-name { font-size: 13px; color: #e4edfc; text-shadow: none; }
+.bf-arena .bf-level-reward { border-radius: 2px; background: #283c59; min-height: 26px; font-size: 10px; color: #c7d7ed; text-shadow: none; }
+.bf-arena .bf-map-node-next .bf-level-reward { background: #ffc94b; color: #382908; box-shadow: none; }
+.bf-arena .bf-map-node-locked .bf-level-reward { background: #20314a; }
+.bf-arena .bf-tab { border-radius: 3px 3px 0 0; background: #293b58; color: #b4c6e2; }
+.bf-arena .bf-tab-active { background: #f3f6fb; color: #152039; box-shadow: 0 -3px 0 #ffc94b; }
+.bf-arena .bf-market-list { border-radius: 4px; padding: 12px; }
+.bf-arena .bf-market-row { border-radius: 2px; background: #e5ebf4; padding: 12px; border-left: 3px solid #a2b7d2; }
+.bf-arena .bf-market-name { font-family: var(--arena-display); font-size: 23px; letter-spacing: 0.02em; }
+
+/* Online keeps slot colors and actual ready states visible. */
+.bf-arena .bf-online-screen::before { background: linear-gradient(#0b12243d, transparent 42%, #0b122466); }
+.bf-arena .bf-online-header { height: 54px; }
+.bf-arena :is(.bf-online-back, .bf-online-small-button, .bf-online-picker-button, .bf-online-action) { border-radius: 3px; border-width: 1px; font-family: Barlow, sans-serif; letter-spacing: 0.06em; }
+.bf-arena .bf-online-back { background: #263d5c; }
+.bf-arena .bf-online-panel { border-radius: 4px; border: 0; border-top: 4px solid #287bff; background: #f3f6fb; box-shadow: 0 10px 30px #0005; }
+.bf-arena .bf-online-join { border-top-color: #f04455; }
+.bf-arena .bf-online-panel h2 { font-family: var(--arena-display); font-size: 25px; letter-spacing: 0.04em; }
+.bf-arena .bf-online-room-row { border: 1px solid #c4d1e3; border-left: 4px solid #287bff; border-radius: 3px; background: #e8eef7; box-shadow: 0 2px 0 #d6deec; }
+.bf-arena .bf-online-room-join { color: #1555b2; }
+.bf-arena .bf-online-chip, .bf-arena .bf-online-room-tag { border-radius: 3px; border: 1px solid #8396b14a; }
+.bf-arena .bf-online-room-tag { max-width: min(70vw, 600px); }
+.bf-arena .bf-online-input { border-radius: 3px; border-width: 1px; border-color: #a6b6ce; }
+.bf-arena .bf-online-primary { background: linear-gradient(120deg, #ed4355, #bc213e); }
+.bf-arena .bf-online-secondary { background: #334d70; }
+.bf-arena .bf-online-step { color: #466a98; }
+.bf-arena .bf-online-select .bf-roster-bar { padding-left: 18px; }
+.bf-arena .bf-online-player-plate { border-radius: 3px; border: 1px solid #a6b9d8; border-top: 4px solid var(--slot, #287bff); box-shadow: 0 6px 15px #0005; }
+.bf-arena .bf-online-plate-name { font-family: var(--arena-display); font-size: clamp(17px, 2vw, 25px); }
+.bf-arena .bf-online-plate-top { color: #334e73; }
+.bf-arena .bf-online-ready-tag { border-radius: 2px; color: #fff; }
+.bf-arena .bf-online-ready-tag.is-ready { background: #197b5c; box-shadow: none; }
+.bf-arena .bf-online-open-plate { border-style: dashed; background: #e5eef9e8; animation: none; }
+.bf-arena .bf-online-waiting-controls { border: 1px solid #b3c4df; border-radius: 4px; box-shadow: 0 8px 24px #0005; }
+.bf-arena .bf-online-settings select { border-radius: 2px; border-color: #a6b6ce; background: #e6edf6; }
+.bf-arena .bf-ready-check { border-radius: 2px; }
+.bf-arena .bf-online-dance { background: #6552b9; }
+.bf-arena .bf-online-ready-on { background: #197b5c; }
+.bf-arena .bf-online-start { background: #ffc94b; color: #382908; }
+.bf-arena .bf-online-toast, .bf-arena .bf-online-error { border-radius: 3px; border-width: 1px; box-shadow: 0 5px 18px #0005; }
+
+/* Fighter card: portrait, player slot, name, damage, and stocks are all live data. */
+.bf-arena .bf-hud-corner { left: calc(var(--safe-l) + 22px); bottom: calc(var(--safe-b) + 24px); gap: 0; align-items: stretch; min-width: 228px; height: 88px; background: linear-gradient(105deg, #0d172bed, #1e3352dd); border-bottom: 4px solid var(--fighter, #287bff); box-shadow: 0 6px 20px #0004; }
+.bf-arena .bf-hud-portrait { width: 90px; position: relative; overflow: hidden; background: linear-gradient(135deg, var(--fighter, #287bff), #152b47); }
+.bf-arena .bf-hud-portrait img { position: absolute; width: 105%; height: 110%; bottom: -6%; left: -4%; object-fit: cover; }
+.bf-arena .bf-hud-player { position: absolute; left: 5px; top: 3px; color: white; font: italic 900 17px var(--arena-display); text-shadow: 0 2px 3px #0009; }
+.bf-arena .bf-hud-readout { padding: 2px 14px 6px; display: grid; grid-template-columns: 1fr; align-content: center; min-width: 136px; }
+.bf-arena .bf-hud-name { color: white; font: 800 13px var(--arena-display); letter-spacing: 0.14em; }
+.bf-arena .bf-damage { font-size: 51px; line-height: 0.98; -webkit-text-stroke: 1px #071124; text-shadow: 0 3px 0 #070d1e; font-variant-numeric: tabular-nums; }
+.bf-arena .bf-stocks { gap: 5px; margin-top: 4px; }
+.bf-arena .bf-stock { width: 10px; height: 7px; border: 1px solid #ffeac0; border-radius: 1px; background: #ffc94b; box-shadow: none; transform: skewX(-15deg); }
+.bf-arena .bf-keyhints { bottom: calc(var(--safe-b) + 12px); background: #0a1424c7; border: 1px solid #738eb536; border-radius: 3px; padding: 7px 12px; gap: 12px; animation: bf-keyhints-settle 1s ease 14s forwards; }
+.bf-arena .bf-keyhint { color: #d8e4f7; font-family: Barlow, sans-serif; font-size: 10px; letter-spacing: 0.03em; }
+.bf-arena .bf-kbd { border: 1px solid #9aacc6; border-radius: 3px; box-shadow: 0 2px 0 #7d91af; background: #f2f6fc; font-family: Barlow, sans-serif; }
+.bf-arena .bf-keyhint .bf-kbd { box-shadow: 0 2px 0 #8495ad; }
+.bf-arena .bf-banner { top: 18%; padding: 10px 5vw; font-size: clamp(30px, 5vw, 64px); color: #fff; -webkit-text-stroke: 1px #0a1325; text-shadow: 0 4px 0 #081124; line-height: 1.1; }
+.bf-arena .bf-bossbar { top: calc(var(--safe-t) + 16px); width: min(54vw, 540px); }
+.bf-arena .bf-bossbar-name { font: italic 900 24px var(--arena-display); letter-spacing: 0.06em; text-shadow: 0 2px 0 #061022; }
+.bf-arena .bf-bossbar-track { border: 1px solid #d0d9e8; border-radius: 2px; background: #111b2a; height: 12px; box-shadow: 0 3px 0 #050c1a; }
+.bf-arena .bf-bossbar-fill { border-radius: 0; background: linear-gradient(90deg, #c52e49, #ff7966); }
+.bf-arena .bf-ctl-row { border-radius: 2px; background: #e5ebf4; }
+.bf-arena .bf-controls-panel { max-height: calc(100dvh - 28px); }
+.bf-arena .bf-ctl-subtitle { color: #c12f46; font-family: var(--arena-display); font-size: 21px; letter-spacing: 0.04em; }
+.bf-arena #rotate-overlay { background: radial-gradient(ellipse at 50% 20%, #334d73, #0b1224); }
+
+@media (max-height: 500px) {
+  .bf-arena :is(.bf-map-header, .bf-select-header) { min-height: 42px; padding-bottom: 6px; gap: 10px; }
+  .bf-arena :is(.bf-map-title, .bf-select-title, .bf-online-title) { font-size: 29px; }
+  .bf-arena .bf-button-round { width: 34px; height: 34px; }
+  .bf-arena .bf-button { padding: 9px 16px; font-size: 13px; }
+  .bf-arena .bf-button-round { padding: 0; }
+  .bf-arena .bf-button-big { font-size: 22px; padding: 9px 18px; }
+  .bf-arena .bf-title-screen { padding-top: 13px; }
+  .bf-arena .bf-logo { width: 65px; }
+  .bf-arena .bf-logo-word { font-size: min(15vw, 100px); padding-bottom: 8px; }
+  .bf-arena .bf-logo-word::after { height: 5px; }
+  .bf-arena .bf-title-kicker { margin-top: 12px; font-size: 9px; }
+  .bf-arena .bf-tap-hint { bottom: 12px; font-size: 11px; padding: 6px 24px; }
+  .bf-arena .bf-mode-cards { padding-bottom: 6px; width: min(90vw, 850px); }
+  .bf-arena .bf-mode-card { padding: 12px 22px; gap: 4px; }
+  .bf-arena .bf-mode-name { font-size: 43px; }
+  .bf-arena .bf-mode-tag { font-size: 12px; }
+  .bf-arena .bf-mode-chip { font-size: 9px; padding: 3px 7px; }
+  .bf-arena .bf-roster-grid { gap: 4px; padding: 5px; max-width: 1100px; }
+  .bf-arena .bf-roster-grid .bf-tile-name { font-size: 11px; padding: 3px 1px; }
+  .bf-arena .bf-roster-bar { min-height: 69px; gap: 11px; padding: 6px 10px 6px 0; }
+  .bf-arena .bf-selection-portrait { width: 78px; margin: -6px 0; }
+  .bf-arena .bf-selection-player { font-size: 18px; }
+  .bf-arena .bf-roster-name { font-size: 27px; }
+  .bf-arena .bf-roster-tagline { font-size: 11px; }
+  .bf-arena .bf-roster-stats { gap: 3px 6px; grid-template-columns: auto minmax(44px, 90px); }
+  .bf-arena .bf-stat-label { font-size: 8px; }
+  .bf-arena .bf-stat-track { height: 5px; }
+  .bf-arena .bf-online-header { height: 38px; }
+  .bf-arena .bf-online-panel h2 { font-size: 20px; }
+  .bf-arena .bf-hud-corner { left: calc(var(--safe-l) + 12px); bottom: calc(var(--safe-b) + 14px); min-width: 165px; height: 65px; }
+  .bf-arena .bf-hud-portrait { width: 61px; }
+  .bf-arena .bf-hud-readout { min-width: 103px; padding: 3px 10px; }
+  .bf-arena .bf-hud-name { font-size: 10px; }
+  .bf-arena .bf-damage { font-size: 38px; }
+  .bf-arena .bf-hud-player { font-size: 13px; }
+  .bf-arena .bf-stock { height: 5px; width: 8px; }
+  .bf-arena .bf-keyhints { padding: 4px 7px; gap: 8px; bottom: 7px; }
+  .bf-arena .bf-keyhint { font-size: 9px; }
+  .bf-arena .bf-keyhint .bf-kbd { font-size: 9px; }
+  .bf-arena .bf-controls-panel { padding: 12px 14px; }
+  .bf-arena .bf-controls-panel .bf-title { font-size: 27px; }
+}
+@media (max-width: 700px) {
+  .bf-arena .bf-roster-stats { display: grid; grid-template-columns: auto 50px; }
+  .bf-arena .bf-roster-bar { flex-wrap: wrap; gap: 8px 12px; padding: 10px; }
+  .bf-arena .bf-selection-portrait { width: 64px; min-height: 66px; margin: -10px 0 -10px -10px; }
+  .bf-arena .bf-roster-who { min-width: 100px; }
+  .bf-arena .bf-roster-bar > .bf-button { flex: 1; }
+  .bf-arena .bf-roster-bar > .bf-button-big { flex: 2; }
+  .bf-arena .bf-roster-name { font-size: 27px; }
+  .bf-arena .bf-roster-tagline { font-size: 11px; }
+  .bf-arena .bf-roster-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); align-content: center; }
+  .bf-arena .bf-tile-name { font-size: 13px; }
+  .bf-arena .bf-online-loadout { display: flex; min-width: 100px; }
+  .bf-arena .bf-online-join > p { display: block; font-size: 10px; }
+  .bf-arena .bf-online-settings { min-width: 200px; }
+  .bf-arena .bf-online-waiting-controls { flex-wrap: wrap; }
+  .bf-arena .bf-online-browser { grid-template-columns: 1fr 1fr; }
+  .bf-arena .bf-online-title { font-size: 24px; }
+  .bf-arena .bf-market-row { grid-template-columns: 1fr auto; gap: 6px 10px; }
+  .bf-arena .bf-keyhints { left: auto; right: 10px; transform: none; display: grid; grid-template-columns: repeat(3, auto); }
+  .bf-arena .bf-mode-cards { gap: 12px; width: 94%; }
+  .bf-arena .bf-mode-card { padding: 13px 16px; }
+  .bf-arena .bf-mode-name { font-size: 37px; }
+  .bf-arena .bf-mode-tag { font-size: 11px; }
+}
+@media (max-width: 700px) and (max-height: 500px) {
+  .bf-arena .bf-roster-grid { grid-template-columns: repeat(10, minmax(0, 1fr)); }
+  .bf-arena .bf-roster-grid .bf-tile-name { font-size: 8px; }
+  .bf-arena .bf-roster-bar { flex-wrap: nowrap; min-height: 64px; gap: 7px; padding: 6px; }
+  .bf-arena .bf-selection-portrait { width: 46px; min-height: 52px; margin: -6px 0 -6px -6px; }
+  .bf-arena .bf-roster-who { min-width: 75px; }
+  .bf-arena .bf-roster-name { font-size: 22px; }
+  .bf-arena .bf-roster-tagline { font-size: 9px; }
+  .bf-arena .bf-roster-stats { grid-template-columns: auto 34px; gap: 3px 4px; }
+  .bf-arena .bf-stat-label { font-size: 7px; }
+  .bf-arena .bf-roster-bar > .bf-button { flex: none; padding: 9px; font-size: 10px; letter-spacing: 0; }
+  .bf-arena .bf-roster-bar > .bf-button-big { font-size: 17px; }
+}
+@media (pointer: coarse) {
+  .bf-arena .bf-hud-corner { top: calc(var(--safe-t) + 8px); bottom: auto; transform: scale(0.85); transform-origin: top left; }
+}
+@media (max-height: 500px) and (min-width: 520px) {
+  .bf-arena .bf-online-results .bf-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(170px, 1fr);
+    column-gap: 22px;
+    width: min(680px, calc(100vw - 32px));
+    max-width: none;
+    max-height: calc(100dvh - 24px);
+    padding: 16px 20px;
+  }
+  .bf-arena .bf-online-results .bf-title { grid-column: 1 / -1; font-size: 34px; margin-bottom: 10px; }
+  .bf-arena .bf-online-results .bf-loot { grid-row: 2 / 4; margin: 0; gap: 6px; }
+  .bf-arena .bf-online-results .bf-loot-row { min-height: 38px; padding: 6px 8px; gap: 8px; font-size: 12px; }
+  .bf-arena .bf-online-results .bf-loot-icon { font-size: 21px; }
+  .bf-arena .bf-online-results .bf-hint { align-self: end; font-size: 14px; margin: 4px 0 12px; }
+  .bf-arena .bf-online-results .bf-button-col { gap: 10px; align-self: start; }
+  .bf-arena .bf-online-results .bf-button { padding: 12px 10px; font-size: 13px; }
+}
+@media (max-height: 500px) and (min-width: 640px) {
+  .bf-arena .bf-controls-panel { padding: 10px 12px; }
+  .bf-arena .bf-controls-panel .bf-title { font-size: 24px; margin-bottom: 6px; }
+  .bf-arena .bf-ctl-row { grid-template-columns: 116px minmax(0, 1fr); gap: 6px; padding: 2px 6px; }
+  .bf-arena .bf-ctl-keys { gap: 2px; }
+  .bf-arena .bf-ctl-or { font-size: 10px; margin-inline: 1px; }
+  .bf-arena .bf-ctl-keys .bf-kbd { font-size: 10px; min-width: 16px; padding: 2px 4px; }
+  .bf-arena .bf-ctl-what b { font-size: 11px; letter-spacing: 0.08em; }
+  .bf-arena .bf-ctl-what small { font-size: 10px; }
+  .bf-arena .bf-ctl-subtitle { font-size: 16px; margin: 6px 0 4px; }
+  .bf-arena .bf-ctl-tips li { font-size: 10.5px; line-height: 1.2; }
+  .bf-arena .bf-ctl-done { margin-top: 6px; padding: 9px 20px; font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bf-arena *, .bf-arena *::before, .bf-arena *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}

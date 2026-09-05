@@ -9,6 +9,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { BLOOM_STRENGTH, BLOOM_RADIUS, BLOOM_THRESHOLD } from '../config';
+import { ARENA_PRESENTATION } from './presentation';
 
 export class Bloom {
   private readonly renderer: THREE.WebGLRenderer;
@@ -28,7 +29,10 @@ export class Bloom {
     // Half drawing-buffer resolution for the bloom's internal blur targets.
     renderer.getDrawingBufferSize(this.size);
     const res = new THREE.Vector2(this.size.x * 0.5, this.size.y * 0.5);
-    this.bloomPass = new UnrealBloomPass(res, BLOOM_STRENGTH, BLOOM_RADIUS, BLOOM_THRESHOLD);
+    this.bloomPass = new UnrealBloomPass(res,
+      ARENA_PRESENTATION ? 0.18 : BLOOM_STRENGTH,
+      ARENA_PRESENTATION ? 0.35 : BLOOM_RADIUS,
+      ARENA_PRESENTATION ? 1.25 : BLOOM_THRESHOLD);
     this.composer.addPass(this.bloomPass);
 
     this.outputPass = new OutputPass();

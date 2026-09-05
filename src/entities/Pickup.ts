@@ -9,6 +9,8 @@ import type { SimRegistry, StateIO } from '../net/snapshots';
 import type { EnemyDef, MaterialId } from '../data/types';
 import { Body } from '../physics/Body';
 import { makeToonMaterial } from '../render/toon';
+import { coinStamp } from '../render/collectibleTextures';
+import { ARENA_PRESENTATION, applyToonPresentation } from '../render/presentation';
 import type { WorldCtx } from './Entity';
 import { Entity } from './Entity';
 import type { Fighter } from './Fighter';
@@ -21,6 +23,15 @@ type PickupMaterials = {
 
 const CYLINDER = new THREE.CylinderGeometry(1, 1, 1, 24);
 const OCTAHEDRON = new THREE.OctahedronGeometry(1, 0);
+const PICKUP_SHAPES: Record<MaterialId, THREE.BufferGeometry> | null = ARENA_PRESENTATION ? {
+  boneShard: new THREE.CapsuleGeometry(0.42, 1.1, 3, 8),
+  slimeGoo: new THREE.IcosahedronGeometry(1, 1),
+  ghostEssence: OCTAHEDRON,
+  feather: new THREE.SphereGeometry(1, 12, 8).scale(0.5, 1.2, 0.28),
+  energyCore: new THREE.DodecahedronGeometry(1, 0),
+} : null;
+
+
 const MATERIAL_IDS: readonly MaterialId[] = [
   'boneShard',
   'slimeGoo',
@@ -91,6 +102,7 @@ export class Pickup extends Entity {
     this.coin.visible = false;
     this.gem.visible = true;
     this.gem.material = this.materials.gems[material];
+    if (PICKUP_SHAPES) this.gem.geometry = PICKUP_SHAPES[material];
     this.activate(x, y, vx, vy);
   }
 
@@ -198,7 +210,10 @@ export class Pickup extends Entity {
     if (!this.alive) return;
     this.coin.visible = this.kind === 'gold';
     this.gem.visible = this.kind === 'material';
-    if (this.materialId) this.gem.material = this.materials.gems[this.materialId];
+    if (this.materialId) {
+      this.gem.material = this.materials.gems[this.materialId];
+      if (PICKUP_SHAPES) this.gem.geometry = PICKUP_SHAPES[this.materialId];
+    }
     this.group.position.set(this.body.pos.x, this.body.pos.y + this.body.height * 0.5, 0.18);
   }
 
@@ -283,6 +298,18 @@ export class PickupManager {
         energyCore: makeToonMaterial(MATERIAL_COLORS.energyCore),
       },
     };
+    if (ARENA_PRESENTATION) {
+      this.materials.coin.map = coinStamp();
+      applyToonPresentation(this.materials.coin, 'weapon');
+      for (const id of MATERIAL_IDS) {
+        const material = this.materials.gems[id];
+        if (id === 'ghostEssence' || id === 'energyCore') {
+          material.emissive.setHex(MATERIAL_COLORS[id]);
+          material.emissiveIntensity = 0.18;
+        }
+        applyToonPresentation(material, 'prop');
+      }
+    }
     let nextIndex = 0;
     this.pool = new Pool(
       () => {
@@ -448,6 +475,7 @@ export class PickupManager {
     for (let i = 0; i < this.all.length; i += 1) {
       this.scene.remove(this.all[i]!.group);
     }
+    this.materials.coin.map?.dispose();
     this.materials.coin.dispose();
     for (let i = 0; i < MATERIAL_IDS.length; i += 1) {
       this.materials.gems[MATERIAL_IDS[i]!].dispose();

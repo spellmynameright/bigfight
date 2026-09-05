@@ -2,9 +2,14 @@ import * as THREE from 'three';
 import { atan2, sin } from '../core/simmath';
 import type { StateIO } from '../net/snapshots';
 import type { AttackDef, ProjectileDef, SidekickDef } from '../data/types';
+import { subjectById } from '../mockup/styles/catalog';
 import { Body } from '../physics/Body';
 import { attachGlow } from '../render/GlowSprites';
 import { makeToonMaterial } from '../render/toon';
+import { applyPresentation, ARENA_PRESENTATION } from '../render/presentation';
+import { buildApprovedRig } from '../rigs/ApprovedRig';
+import type { Rig } from '../rigs/FighterRig';
+import type { Pose } from '../rigs/poses';
 import { Entity, type WorldCtx } from './Entity';
 import type { Fighter } from './Fighter';
 import type { Player } from './Player';
@@ -21,6 +26,7 @@ const SPRING = 42;
 const DAMPING = 12;
 
 type RigParts = {
+  approved?: Rig;
   rotor?: THREE.Object3D;
   wingL?: THREE.Object3D;
   wingR?: THREE.Object3D;
@@ -32,6 +38,7 @@ export class Sidekick extends Entity {
   private readonly attack: AttackDef;
   private readonly aimProjectile: ProjectileDef;
   private readonly rigParts: RigParts;
+  private readonly companionPose: Pose = {};
   private fireTimer = 0.45;
   private animTime = 0;
   private recoil = 0;
@@ -63,6 +70,7 @@ export class Sidekick extends Entity {
     };
     this.aimProjectile = { ...def.projectile };
     this.rigParts = this.buildRig(def);
+    applyPresentation(this.group, 'fighter');
     this.group.visible = false;
   }
 
@@ -85,6 +93,7 @@ export class Sidekick extends Entity {
 
   dispose(): void {
     this.group.removeFromParent();
+    this.rigParts.approved?.dispose();
     for (let i = 0; i < this.materials.length; i += 1) this.materials[i]!.dispose();
   }
 
@@ -122,6 +131,24 @@ export class Sidekick extends Entity {
   }
 
   private updateAnimation(dt: number): void {
+    const approved = this.rigParts.approved;
+    if (approved) {
+      // The existing cooldown identifies the shot after rollback as well as during live play.
+      const sinceShot = this.def.fireInterval - this.fireTimer;
+      if (sinceShot >= 0 && sinceShot < 0.32) {
+        const phase = sinceShot < 0.08
+          ? 0.3 + sinceShot / 0.08 * 0.35
+          : 0.65 + (sinceShot - 0.08) / 0.24 * 0.35;
+        this.companionPose.motion = { kind: 'attack', phase, time: this.animTime, poseId: 'shoot' };
+      } else {
+        this.companionPose.motion = {
+          kind: this.def.builder === 'dragon' ? 'run' : 'ready',
+          time: this.animTime,
+        };
+      }
+      approved.setPose(this.companionPose, 1);
+      approved.update(dt);
+    }
     const rotor = this.rigParts.rotor;
     if (rotor) rotor.rotation.y += dt * 24;
     const wingL = this.rigParts.wingL;
@@ -176,6 +203,14 @@ export class Sidekick extends Entity {
   private buildRig(def: SidekickDef): RigParts {
     const bobRoot = new THREE.Group();
     this.group.add(bobRoot);
+    if (ARENA_PRESENTATION) {
+      const height = def.builder === 'drone' ? 0.64 : def.builder === 'dragon' ? 0.76 : 0.72;
+      const approved = buildApprovedRig(subjectById(def.id), height);
+      approved.root.position.y = -height * 0.5;
+      approved.setShadow(null, 0);
+      bobRoot.add(approved.root);
+      return { bobRoot, approved };
+    }
     switch (def.builder) {
       case 'drone':
         return this.buildDrone(bobRoot, def);

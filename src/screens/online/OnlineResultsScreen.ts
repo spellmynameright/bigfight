@@ -24,7 +24,7 @@ export class OnlineResultsScreen implements Screen {
 
   enter(game: Game): void {
     game.input.setTouchControlsVisible(false);
-    this.root = uiRoot('bf-modal-backdrop bf-results');
+    this.root = uiRoot('bf-modal-backdrop bf-results bf-online-results');
     const panel = el('div', 'bf-panel', this.root);
     const localPlace = this.result.placements.indexOf(this.localSlot);
     const won = localPlace === 0;

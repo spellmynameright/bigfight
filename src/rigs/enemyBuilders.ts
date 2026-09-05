@@ -2,6 +2,9 @@ import * as THREE from 'three';
 import { clamp, damp, lerp } from '../core/math';
 import type { EnemyDef } from '../data/types';
 import { makeToonMaterial } from '../render/toon';
+import { ARENA_PRESENTATION, applyPresentation } from '../render/presentation';
+import { buildApprovedRig } from './ApprovedRig';
+import { subjectById } from '../mockup/styles/catalog';
 import { FighterRig } from './FighterRig';
 import type { JointName, Pose } from './poses';
 
@@ -33,18 +36,27 @@ const CLUB_WOOD = 0xb86f35;
 const CAPTAIN_RED = 0xff4b4b;
 
 export function buildEnemyRig(def: EnemyDef): MobRig {
+  if (ARENA_PRESENTATION) return buildApprovedRig(subjectById(def.id), def.proportions.height);
+  let rig: MobRig;
   switch (def.builder) {
     case 'skeleton':
-      return buildSkeleton(def);
+      rig = buildSkeleton(def);
+      break;
     case 'captain':
-      return buildCaptain(def);
+      rig = buildCaptain(def);
+      break;
     case 'slime':
-      return new SlimeRig(def);
+      rig = new SlimeRig(def);
+      break;
     case 'ghost':
-      return new GhostRig(def);
+      rig = new GhostRig(def);
+      break;
     case 'miniEagle':
-      return new MiniEagleRig(def);
+      rig = new MiniEagleRig(def);
+      break;
   }
+  applyPresentation(rig.root, 'enemy');
+  return rig;
 }
 
 class GarnishedRig implements MobRig {

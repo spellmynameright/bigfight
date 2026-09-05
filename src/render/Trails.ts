@@ -5,6 +5,7 @@
  * off. Geometry is rebuilt in place every frame — no per-frame allocations.
  */
 import * as THREE from 'three';
+import { ARENA_PRESENTATION } from './presentation';
 
 const POOL = 16;
 /** Ring-buffer length (positions) per trail. */
@@ -39,7 +40,8 @@ class Trail {
   constructor() {
     const geom = new THREE.BufferGeometry();
     this.posAttr = new THREE.BufferAttribute(new Float32Array(VERTS * 3), 3);
-    this.colAttr = new THREE.BufferAttribute(new Float32Array(VERTS * 3), 3);
+    const colorSize = ARENA_PRESENTATION ? 4 : 3;
+    this.colAttr = new THREE.BufferAttribute(new Float32Array(VERTS * colorSize), colorSize);
     this.posAttr.setUsage(THREE.DynamicDrawUsage);
     this.colAttr.setUsage(THREE.DynamicDrawUsage);
     geom.setAttribute('position', this.posAttr);
@@ -139,8 +141,9 @@ class Trail {
         dy = 0;
       }
       // Perpendicular offset, screen-plane ribbon.
-      const ox = -dy * half;
-      const oy = dx * half;
+      const taper = ARENA_PRESENTATION ? jj / last : 1;
+      const ox = -dy * half * taper;
+      const oy = dx * half * taper;
 
       const v = j * 6;
       pos[v] = px + ox;
@@ -150,9 +153,17 @@ class Trail {
       pos[v + 4] = py - oy;
       pos[v + 5] = pz;
 
-      // Alpha (via additive brightness): full at the head, 0 at the tail.
+      // Normal blending needs vertex alpha to reveal the background at the tail.
       const t = jj / last;
       const a = t * t * this.fade;
+      if (ARENA_PRESENTATION) {
+        const c = j * 8;
+        col[c] = col[c + 4] = cr;
+        col[c + 1] = col[c + 5] = cg;
+        col[c + 2] = col[c + 6] = cb;
+        col[c + 3] = col[c + 7] = a;
+        continue;
+      }
       const r = cr * a;
       const g = cg * a;
       const b = cb * a;

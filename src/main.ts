@@ -1,9 +1,12 @@
 import './ui/styles.css';
+import './ui/arena.css';
+import { ARENA_PRESENTATION } from './render/presentation';
 import { Game } from './Game';
 import { installMenuKeys } from './input/menuKeys';
 import { ControlsScreen } from './screens/ControlsScreen';
 import { NetMatchScreen } from './screens/NetMatchScreen';
 
+document.documentElement.classList.toggle('bf-arena', ARENA_PRESENTATION);
 const game = new Game();
 game.start();
 installMenuKeys();

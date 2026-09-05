@@ -9,6 +9,7 @@ import { weaponPortrait } from '../ui/portraits';
 import { buildRosterGrid, type RosterGrid } from '../ui/rosterGrid';
 import { ROSTER_CAPACITY } from './CharacterSelectScreen';
 import type { Screen } from './Screen';
+import { ARENA_PRESENTATION } from '../render/presentation';
 
 /**
  * Weapon select: the same full-screen Smash-style board as character select.
@@ -21,6 +22,7 @@ export class WeaponSelectScreen implements Screen {
   private nameEl: HTMLElement | null = null;
   private tagEl: HTMLElement | null = null;
   private selectedId: string | null = null;
+  private portraitEl: HTMLImageElement | null = null;
 
   constructor(
     private readonly callbacks: {
@@ -31,7 +33,7 @@ export class WeaponSelectScreen implements Screen {
 
   enter(game: Game): void {
     game.input.setTouchControlsVisible(false);
-    this.root = uiRoot('bf-select-screen');
+    this.root = uiRoot('bf-select-screen bf-weapon-screen');
 
     const header = el('div', 'bf-select-header', this.root);
     button('◀', () => this.callbacks.onBack(), 'bf-button bf-button-round', header);
@@ -57,6 +59,11 @@ export class WeaponSelectScreen implements Screen {
     });
 
     const bar = el('div', 'bf-roster-bar', this.root);
+    if (ARENA_PRESENTATION) {
+      const portrait = el('div', 'bf-selection-portrait bf-selection-weapon', bar);
+      this.portraitEl = el('img', '', portrait);
+      this.portraitEl.alt = '';
+    }
     const who = el('div', 'bf-roster-who', bar);
     this.nameEl = el('h2', 'bf-roster-name', who);
     this.tagEl = el('p', 'bf-roster-tagline', who);
@@ -76,6 +83,10 @@ export class WeaponSelectScreen implements Screen {
     if (sfx) events.emit('ui', { kind: 'move' });
     this.grid?.setSelected(id);
     const weapon = weaponById(id);
+    if (this.portraitEl) {
+      this.portraitEl.src = weaponPortrait(id);
+      this.portraitEl.parentElement?.style.setProperty('--fighter', WEAPON_CATEGORY_COLORS[weapon.category] ?? '#287bff');
+    }
     if (this.nameEl) this.nameEl.textContent = weapon.name.toUpperCase();
     if (this.tagEl) this.tagEl.textContent = weapon.tagline;
   }
@@ -84,6 +95,7 @@ export class WeaponSelectScreen implements Screen {
     this.root?.remove();
     this.root = null;
     this.grid = null;
+    this.portraitEl = null;
   }
 
   update(): void {}

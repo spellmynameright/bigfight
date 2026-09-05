@@ -11,6 +11,7 @@ import type { AttackDef, Faction, Facing, ProjectileDef } from '../data/types';
 import { aabbOverlap } from '../physics/collision';
 import { attachGlow } from '../render/GlowSprites';
 import { makeToonMaterial } from '../render/toon';
+import { applyPresentation } from '../render/presentation';
 import type { WorldCtx } from './Entity';
 import type { Fighter } from './Fighter';
 
@@ -125,6 +126,7 @@ class ProjectileSlot implements FighterLike {
     this.whiteMat = this.makeToon(0xffffff);
     this.redMat = this.makeToon(0xff3048);
     this.visuals = this.buildVisuals();
+    applyPresentation(this.group, 'weapon');
     this.hurtbox = {
       owner: this,
       faction: this.faction,

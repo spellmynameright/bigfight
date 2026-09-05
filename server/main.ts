@@ -487,6 +487,7 @@ const MIME: Record<string, string> = {
   '.css': 'text/css; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
   '.png': 'image/png',
+  '.ttf': 'font/ttf',
   '.webmanifest': 'application/manifest+json',
 };
 

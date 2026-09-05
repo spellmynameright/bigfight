@@ -2,6 +2,9 @@ import * as THREE from 'three';
 import { clamp, damp, lerp } from '../core/math';
 import type { BossDef, BossId } from '../data/types';
 import { makeToonMaterial } from '../render/toon';
+import { ARENA_PRESENTATION, applyPresentation } from '../render/presentation';
+import { buildApprovedRig } from './ApprovedRig';
+import { subjectById } from '../mockup/styles/catalog';
 import type { MobRig } from './enemyBuilders';
 import type { JointName, Pose } from './poses';
 
@@ -44,16 +47,24 @@ const EAGLE_CREAM = 0xfff0bf;
 const ANGRY_RED = 0xff3048;
 
 export function buildBossRig(id: BossId, def: BossDef): MobRig {
+  if (ARENA_PRESENTATION) return buildApprovedRig(subjectById(id), 1.8 * def.scale);
+  let rig: MobRig;
   switch (id) {
     case 'skeletonKing':
-      return new SkeletonKingRig(def);
+      rig = new SkeletonKingRig(def);
+      break;
     case 'giantGhost':
-      return new GiantGhostRig(def);
+      rig = new GiantGhostRig(def);
+      break;
     case 'giantEagle':
-      return new GiantEagleRig(def);
+      rig = new GiantEagleRig(def);
+      break;
     case 'lavaGolem':
-      return new LavaGolemRig(def);
+      rig = new LavaGolemRig(def);
+      break;
   }
+  applyPresentation(rig.root, 'boss');
+  return rig;
 }
 
 abstract class BossRigBase implements BossRig {

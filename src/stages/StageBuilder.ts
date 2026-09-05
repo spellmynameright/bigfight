@@ -1,15 +1,12 @@
 import * as THREE from 'three';
 import type { StageDef } from '../data/types';
 import { buildColliders, type StageColliders } from '../physics/collision';
-import { toonRamp } from '../render/toon';
+import { makeToonMaterial } from '../render/toon';
+import { ARENA_PRESENTATION, applyPresentation } from '../render/presentation';
 import { decorateStage } from './decorations';
+import { paintStageSky, STAGE_PALETTES, stageSlabGeometry, stageSurfaceTexture, stageTerrainGeometry } from './stagePresentation';
 
-/**
- * Bright-cartoon (Fall Guys style) stage builder: chunky candy-colored
- * platforms with white top lips, sunny gradient sky, puffy clouds, a sun,
- * and pastel hills for depth. Theme flavor is driven purely by StageDef
- * colors (skyColor = sky tint, glowColor = platform candy color).
- */
+/** Stage visuals share the exact collision definitions in either presentation. */
 export interface BuiltStage {
   group: THREE.Group;
   colliders: StageColliders;
@@ -29,9 +26,10 @@ export function buildStage(def: StageDef, scene: THREE.Scene): BuiltStage {
   const textures: THREE.Texture[] = [];
   const geometries: THREE.BufferGeometry[] = [];
   const colliders = buildColliders(def);
+  const palette = ARENA_PRESENTATION ? STAGE_PALETTES[def.theme] : null;
 
   const toon = (color: number): THREE.MeshToonMaterial => {
-    const m = new THREE.MeshToonMaterial({ color, gradientMap: toonRamp() });
+    const m = makeToonMaterial(color);
     materials.push(m);
     return m;
   };
@@ -43,32 +41,43 @@ export function buildStage(def: StageDef, scene: THREE.Scene): BuiltStage {
 
   const candy = new THREE.Color(def.glowColor);
   const candySide = candy.clone().multiplyScalar(0.72);
-  const platMat = toon(candy.getHex());
-  const platSideMat = toon(candySide.getHex());
-  const lipMat = toon(0xffffff);
+  const platMat = toon(palette?.surface ?? candy.getHex());
+  const platSideMat = toon(palette?.foundation ?? candySide.getHex());
+  const lipMat = toon(palette?.edge ?? 0xffffff);
+  if (palette) {
+    platMat.map = stageSurfaceTexture(def.theme, true);
+    platSideMat.map = stageSurfaceTexture(def.theme, false);
+    textures.push(platMat.map, platSideMat.map);
+    lipMat.emissive.setHex(palette.edge);
+    lipMat.emissiveIntensity = def.theme === 'volcano' || def.theme === 'rooftop' ? 0.18 : 0.035;
+  }
 
   // ---- sky ----
   group.add(buildSky(def, materials, textures, geometries));
 
   // ---- hills for depth (grassy by default; rocky/snowy for hot/cold themes) ----
-  const hillColors =
+  const hillColors = palette?.terrain ?? (
     def.theme === 'volcano' ? [0x8a5a5f, 0x6f4a55, 0xa06a62]
     : def.theme === 'ice' ? [0xe8f4ff, 0xcfe4fa, 0xf4faff]
-    : [0x9fe098, 0x7fcf8e, 0xbce8a8];
+    : [0x9fe098, 0x7fcf8e, 0xbce8a8]);
   for (let i = 0; i < 3; i += 1) {
-    const hill = new THREE.Mesh(SPHERE, toon(hillColors[i % hillColors.length]!));
+    const terrainGeometry = palette ? stageTerrainGeometry(def.theme, i) : SPHERE;
+    if (palette) geometries.push(terrainGeometry);
+    const hill = new THREE.Mesh(terrainGeometry, palette
+      ? flat(hillColors[i % hillColors.length]!)
+      : toon(hillColors[i % hillColors.length]!));
     const hw = 16 + i * 7;
-    hill.scale.set(hw, 6 + i * 2.5, 6);
+    hill.scale.set(hw, (palette ? 10 : 6) + i * 2.5, palette ? 1 : 6);
     hill.position.set((i - 1) * 18, def.blast.bottom - 2 - i * 1.5, -14 - i * 4);
     group.add(hill);
   }
 
   // ---- clouds + sun ----
-  const cloudMat = flat(0xffffff, 0.92);
+  const cloudMat = flat(palette ? new THREE.Color(palette.cloud).lerp(new THREE.Color(palette.horizon), 0.7).getHex() : 0xffffff, palette ? 1 : 0.92);
   for (let i = 0; i < 6; i += 1) {
     group.add(buildCloud(cloudMat, -22 + i * 9 + (i % 2) * 3, 7 + (i % 3) * 3.4, -8 - (i % 4) * 3));
   }
-  const sun = new THREE.Mesh(SPHERE, flat(0xfff3b8));
+  const sun = new THREE.Mesh(SPHERE, flat(palette?.sun ?? 0xfff3b8));
   sun.scale.setScalar(2.6);
   sun.position.set(def.blast.right - 4, def.blast.top - 3, -18);
   group.add(sun);
@@ -79,19 +88,25 @@ export function buildStage(def: StageDef, scene: THREE.Scene): BuiltStage {
     // extend the slab deep so no "floating island" underside ever shows.
     const fullLength = platform.w >= (def.blast.right - def.blast.left) * 0.9;
     const thickness = platform.oneWay ? 0.55 : fullLength ? 14 : 1.3;
-    const slab = new THREE.Mesh(BOX, platSideMat);
-    slab.scale.set(platform.w, thickness, DEPTH);
-    slab.position.set(platform.x, platform.y - thickness * 0.5, 0);
+    const slabGeometry = palette ? stageSlabGeometry(platform.w, thickness, DEPTH) : BOX;
+    if (palette) geometries.push(slabGeometry);
+    const slab = new THREE.Mesh(slabGeometry, platSideMat);
+    if (palette) {
+      slab.position.set(platform.x, platform.y, 0);
+    } else {
+      slab.scale.set(platform.w, thickness, DEPTH);
+      slab.position.set(platform.x, platform.y - thickness * 0.5, 0);
+    }
     group.add(slab);
 
-    // Bright candy top + white lip (reads like frosting).
+    // Surface finish and the continuous landing edge use the existing meshes.
     const top = new THREE.Mesh(BOX, platMat);
     top.scale.set(platform.w, Math.min(0.28, thickness * 0.5), DEPTH * 1.02);
     top.position.set(platform.x, platform.y - Math.min(0.14, thickness * 0.25), 0);
     group.add(top);
     const lip = new THREE.Mesh(BOX, lipMat);
-    lip.scale.set(platform.w * 1.015, 0.09, DEPTH * 1.05);
-    lip.position.set(platform.x, platform.y + 0.045, 0);
+    lip.scale.set(platform.w * (palette ? 1 : 1.015), palette ? 0.045 : 0.09, DEPTH * (palette ? 1.025 : 1.05));
+    lip.position.set(platform.x, platform.y + (palette ? 0.0225 : 0.045), 0);
     group.add(lip);
   }
 
@@ -109,7 +124,10 @@ export function buildStage(def: StageDef, scene: THREE.Scene): BuiltStage {
     }
   }
 
-  const decorations = decorateStage(group, def);
+  const decorations = decorateStage(group, palette
+    ? { ...def, skyColor: palette.horizon, glowColor: palette.edge }
+    : def);
+  applyPresentation(group, 'stage');
 
   scene.add(group);
   return {
@@ -122,7 +140,7 @@ export function buildStage(def: StageDef, scene: THREE.Scene): BuiltStage {
       for (const material of materials) material.dispose();
       for (const texture of textures) texture.dispose();
       for (const geometry of geometries) geometry.dispose();
-      // BOX/SPHERE are shared module constants — never disposed.
+      // BOX/SPHERE are shared module constants and remain available to other stages.
     },
   };
 }
@@ -134,16 +152,20 @@ function buildSky(
   geometries: THREE.BufferGeometry[],
 ): THREE.Mesh {
   const canvas = document.createElement('canvas');
-  canvas.width = 4;
-  canvas.height = 256;
+  canvas.width = ARENA_PRESENTATION ? 1024 : 4;
+  canvas.height = ARENA_PRESENTATION ? 512 : 256;
   const ctx = canvas.getContext('2d')!;
-  const top = new THREE.Color(def.skyColor);
-  const horizon = top.clone().lerp(new THREE.Color(0xffffff), 0.55);
-  const gradient = ctx.createLinearGradient(0, 0, 0, 256);
-  gradient.addColorStop(0, `#${top.getHexString()}`);
-  gradient.addColorStop(1, `#${horizon.getHexString()}`);
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, 4, 256);
+  if (ARENA_PRESENTATION) {
+    paintStageSky(ctx, def.theme);
+  } else {
+    const top = new THREE.Color(def.skyColor);
+    const horizon = top.clone().lerp(new THREE.Color(0xffffff), 0.55);
+    const gradient = ctx.createLinearGradient(0, 0, 0, 256);
+    gradient.addColorStop(0, `#${top.getHexString()}`);
+    gradient.addColorStop(1, `#${horizon.getHexString()}`);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 4, 256);
+  }
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;

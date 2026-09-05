@@ -856,7 +856,7 @@ export class Fighter extends Entity {
         return poseFall();
       case 'attack':
       case 'weaponAbility':
-        return poseAttack(this.currentAttack?.poseId ?? 'finisher', this.attackPhase());
+        return poseAttack(this.currentAttack?.poseId ?? 'finisher', this.attackPhase(), this.currentAttack ?? undefined);
       case 'hitstun':
         return poseHit();
       case 'launched':

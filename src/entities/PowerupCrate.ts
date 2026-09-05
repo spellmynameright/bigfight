@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { GRAVITY, POWERUP_DROP_CHANCE, POWERUP_DROP_INTERVAL } from '../config';
 import { events } from '../core/events';
 import type { SimRng } from '../core/rng';
@@ -8,12 +9,15 @@ import type { PowerupDef, PowerupId } from '../data/types';
 import { powerupById } from '../data/powerups';
 import { aabbOverlap } from '../physics/collision';
 import { makeToonMaterial } from '../render/toon';
+import { ARENA_PRESENTATION, applyPresentation } from '../render/presentation';
 import type { WorldCtx } from './Entity';
 import type { Player } from './Player';
 
 const BOX = new THREE.BoxGeometry(1, 1, 1);
 const SPHERE = new THREE.SphereGeometry(1, 20, 14);
 const CYLINDER = new THREE.CylinderGeometry(1, 1, 1, 24);
+const CRATE_SHELL = ARENA_PRESENTATION ? new RoundedBoxGeometry(1, 1, 1, 2, 0.1) : BOX;
+const CRATE_HALO = ARENA_PRESENTATION ? new THREE.TorusGeometry(0.52, 0.024, 6, 32) : SPHERE;
 const MAX_CRATES = 4;
 const CRATE_RADIUS = 0.38;
 const CRATE_COLLECT_RADIUS = 0.74;
@@ -38,15 +42,19 @@ class PowerupSlot {
   private age = 0;
 
   constructor() {
-    this.crateMat = this.makeToon(0xffd36b);
-    this.bandMat = this.makeToon(0xffffff);
+    this.crateMat = this.makeToon(ARENA_PRESENTATION ? 0x2f425d : 0xffd36b);
+    this.bandMat = this.makeToon(ARENA_PRESENTATION ? 0xdfc78d : 0xffffff);
     this.colorMat = this.makeToon(0x58ff7d);
     this.glowMat = this.makeToon(0x58ff7d);
     this.glowMat.transparent = true;
-    this.glowMat.opacity = 0.34;
+    this.glowMat.opacity = ARENA_PRESENTATION ? 0.8 : 0.34;
     this.glowMat.depthWrite = false;
+    if (ARENA_PRESENTATION) {
+      this.colorMat.emissiveIntensity = 0.35;
+      this.glowMat.emissiveIntensity = 0.8;
+    }
 
-    const crate = new THREE.Mesh(BOX, this.crateMat);
+    const crate = new THREE.Mesh(CRATE_SHELL, this.crateMat);
     crate.scale.set(0.42, 0.42, 0.42);
     this.group.add(crate);
 
@@ -61,10 +69,16 @@ class PowerupSlot {
     const core = new THREE.Mesh(SPHERE, this.colorMat);
     core.scale.setScalar(0.18);
     core.position.y = 0.02;
+    if (ARENA_PRESENTATION) core.position.z = 0.22;
     this.group.add(core);
 
-    const glow = new THREE.Mesh(SPHERE, this.glowMat);
-    glow.scale.setScalar(0.64);
+    const glow = new THREE.Mesh(CRATE_HALO, this.glowMat);
+    if (ARENA_PRESENTATION) {
+      glow.rotation.x = Math.PI / 2;
+      glow.position.y = -0.2;
+    } else {
+      glow.scale.setScalar(0.64);
+    }
     this.group.add(glow);
 
     const chute = new THREE.Mesh(CYLINDER, this.bandMat);
@@ -72,6 +86,7 @@ class PowerupSlot {
     chute.position.y = 0.52;
     this.group.add(chute);
 
+    applyPresentation(this.group, 'prop');
     this.group.visible = false;
   }
 
@@ -85,6 +100,7 @@ class PowerupSlot {
     this.groundedTimer = 0;
     this.age = 0;
     this.colorMat.color.setHex(def.color, THREE.SRGBColorSpace);
+    if (ARENA_PRESENTATION) this.colorMat.emissive.setHex(def.color);
     this.glowMat.color.setHex(def.color, THREE.SRGBColorSpace);
     this.glowMat.emissive.setHex(def.color);
     this.group.visible = true;
@@ -163,6 +179,7 @@ class PowerupSlot {
     if (!this.active) return;
     const def = powerupById(this.id);
     this.colorMat.color.setHex(def.color, THREE.SRGBColorSpace);
+    if (ARENA_PRESENTATION) this.colorMat.emissive.setHex(def.color);
     this.glowMat.color.setHex(def.color, THREE.SRGBColorSpace);
     this.glowMat.emissive.setHex(def.color);
     this.group.position.set(this.x, this.y, 0.42);
