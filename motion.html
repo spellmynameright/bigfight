@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#10223b" />
+  <title>BIG FIGHT — Move Lab</title>
+  <link rel="icon" href="data:," />
+</head>
+<body>
+  <canvas id="stage"></canvas>
+  <header class="ml-top">
+    <a class="ml-back" href="./mockup.html" data-back aria-label="Back to Character Lab">◀</a>
+    <div class="ml-title">
+      <h1>MOVE LAB</h1>
+      <p>Same fighter, same moves. Which one looks cooler?</p>
+    </div>
+    <select id="fighter" class="ml-select" aria-label="Fighter"></select>
+    <a class="ml-play" href="./?moves=new">PLAY WITH NEW MOVES</a>
+  </header>
+  <div class="ml-split" aria-hidden="true"></div>
+  <div class="ml-tag ml-tag-now">NOW</div>
+  <div class="ml-tag ml-tag-new">NEW!</div>
+  <nav class="ml-moves" aria-label="Moves">
+    <button data-move="combo">PUNCH COMBO</button>
+    <button data-move="jump">JUMP</button>
+    <button data-move="double">DOUBLE JUMP</button>
+    <button data-move="little">LITTLE HIT</button>
+    <button data-move="big">BIG HIT</button>
+    <button data-move="launch">LAUNCH!</button>
+    <button data-move="all" class="ml-all">PLAY ALL</button>
+    <button id="slow" class="ml-toggle" aria-pressed="false">[ ] SLOW-MO</button>
+  </nav>
+  <script type="module" src="/src/motionLab.ts"></script>
+</body>
+</html>

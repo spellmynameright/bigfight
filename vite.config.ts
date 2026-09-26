@@ -36,6 +36,8 @@ export default defineConfig({
         mockup: 'mockup.html',
         assets: 'assets.html',
         styles: 'styles.html',
+        // Move Lab — NOW vs NEW animation review (motion.html).
+        motion: 'motion.html',
       },
     },
   },

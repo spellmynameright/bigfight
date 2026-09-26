@@ -7,8 +7,12 @@ import { buildRelic } from '../mockup/styles/relic';
 import { motionDuration, motionProfile, sampleMotion } from '../mockup/styles/motion';
 import type { ConceptMotion, ConceptRig, ConceptStyle, ConceptSubject } from '../mockup/styles/types';
 import type { Rig } from './FighterRig';
-import type { JointName, JointRotation, Pose } from './poses';
+import type { JointName, JointRotation, MotionInfo, Pose } from './poses';
 import { approvedStyleFor } from './approvedStyles';
+import {
+  AIR_APEX, AIR_FALL, AIR_RISE, FLIP_TUCK, HIT_FOLD, HIT_RECOIL, LAND_CROUCH, LAND_CROUCH_DROP, MOVE_JOINTS, NEW_MOVES, TUMBLE_CURL,
+  blendOverlay, hasMove, impactEnvelope, isLightHit, moveJoints, sampleMove,
+} from './newMoves';
 
 type Motion = NonNullable<Pose['motion']>;
 type Transform = { node: THREE.Object3D; position: THREE.Vector3; quaternion: THREE.Quaternion; scale: THREE.Vector3 };
@@ -20,6 +24,11 @@ const NATIVE_YAW = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 
 const INVERSE_YAW = NATIVE_YAW.clone().invert();
 const ANGRY = new THREE.Color(0xff3048);
 const BUILDERS = { vanguard: buildVanguard, wildform: buildWildform, relic: buildRelic };
+const TAU = Math.PI * 2;
+/** New move set timing (seconds). */
+const LAND_SQUASH = 0.22;
+const TAKEOFF_STRETCH = 0.2;
+const AIR_FLIP = 0.4;
 
 /** The study's travel finishes when the gameplay hitbox becomes active. */
 export function approvedAttackPhase(phase: number): number {
@@ -70,10 +79,32 @@ export class ApprovedRig implements Rig {
   private clock = 0;
   private lastMotionKind: Motion['kind'] | null = null;
   private disposed = false;
+  /** Reactive move set (see newMoves.ts). Defaults to the `?moves=new` flag. */
+  newMoves = NEW_MOVES;
+  private readonly moveScratch = Object.fromEntries(MOVE_JOINTS.map(name => [name, { x: 0, y: 0, z: 0 }])) as Record<JointName, Required<JointRotation>>;
+  /** Whole-body offsets applied after blending: lunge, squash/stretch, flips. */
+  private readonly juice = { x: 0, y: 0, roll: 0, pivot: 0, sx: 1, sy: 1 };
+  private reactKind: Motion['kind'] | null = null;
+  private reactKindAt = 0;
+  private reactStateTime = 0;
+  private reactAirVy = 0;
+  private reactAirborne = false;
+  private reactLandAt = -Infinity;
+  private reactLandImpact = 0;
+  private reactFlipAt = -Infinity;
+  private reactHitTotal = 0;
+  private reactHitLeft = 0;
+  private reactSpin = 0;
+  private reactTumbleSettled = false;
+  /** Authored limb overlays fit fighter bodies only; creatures keep their own studies. */
+  private readonly authored: boolean;
+  private readonly overlayJoints: JointName[] = [];
+  private reactSpinClock = 0;
 
   constructor(private readonly subject: ConceptSubject, private readonly height: number) {
     if (!(height > 0) || !Number.isFinite(height)) throw new Error(`Invalid approved rig height: ${height}`);
     this.style = approvedStyleFor(subject.id);
+    this.authored = subject.family === 'fighter';
     this.concept = BUILDERS[this.style](subject);
     this.concept.animate(0, 'ready');
     this.concept.root.updateMatrixWorld(true);
@@ -193,16 +224,19 @@ export class ApprovedRig implements Rig {
 
   setPose(pose: Pose, blend: number): void {
     if (this.disposed) return;
-    const amount = clamp(blend, 0, 1);
+    let amount = clamp(blend, 0, 1);
     for (const entry of this.poseNodes) {
       entry.position.copy(entry.node.position);
       entry.quaternion.copy(entry.node.quaternion);
       entry.scale.copy(entry.node.scale);
     }
-    this.poseRoot.rotation.set(0, 0, 0);
+    this.resetPoseRoot();
     this.hipsControl.rotation.set(0, 0, 0);
     const motion = pose.motion;
-    if (motion) {
+    const reactive = this.newMoves && motion?.info !== undefined;
+    if (reactive) {
+      amount = this.applyReactive(motion!, motion!.info!, pose, amount);
+    } else if (motion) {
       if (motion.kind !== this.lastMotionKind) this.clock = 0;
       this.lastMotionKind = motion.kind;
       this.applyMotion(motion, pose);
@@ -226,8 +260,15 @@ export class ApprovedRig implements Rig {
         entry.node.scale.lerp(entry.scale, 1 - amount);
       }
     }
+    if (reactive) this.applyJuice();
     this.refreshColors();
     this.refreshEquipment();
+  }
+
+  private resetPoseRoot(): void {
+    this.poseRoot.position.set(0, 0, 0);
+    this.poseRoot.rotation.set(0, 0, 0);
+    this.poseRoot.scale.set(1, 1, 1);
   }
 
   private applyMotion(motion: Motion, pose: Pose): void {
@@ -248,6 +289,12 @@ export class ApprovedRig implements Rig {
     }
     if (phase === undefined && motion.phase !== undefined) phase = motion.phase;
     const time = phase === undefined ? elapsed * Math.max(0, motion.speed ?? 1) : clamp(phase, 0, END_PHASE) * motionDuration(study, this.subject);
+    this.poseStudy(study, time);
+    if (motion.kind === 'attack') this.applyAttackVariant(motion.poseId, pose, phase!);
+  }
+
+  /** One studio motion at an absolute time, with jump height handed to physics. */
+  private poseStudy(study: ConceptMotion, time: number): void {
     this.concept.animate(time, study);
     if (study === 'jump') {
       const sample = sampleMotion(time, study, this.subject);
@@ -260,7 +307,205 @@ export class ApprovedRig implements Rig {
         this.body.position.y -= sample.airborne * lift * this.bodyScaleY;
       }
     }
-    if (motion.kind === 'attack') this.applyAttackVariant(motion.poseId, pose, phase!);
+  }
+
+  private posePhase(study: ConceptMotion, phase: number): void {
+    this.poseStudy(study, clamp(phase, 0, END_PHASE) * motionDuration(study, this.subject));
+  }
+
+  /**
+   * The reactive move set: reads the body's motion each frame instead of
+   * holding one pose per state. Returns the pose blend to use this frame.
+   */
+  private applyReactive(motion: Motion, info: MotionInfo, pose: Pose, blend: number): number {
+    const now = this.clock;
+    const kind = motion.kind;
+    const airborne = !info.grounded;
+    if (this.reactAirborne && !airborne && kind !== 'ko') {
+      this.reactLandAt = now;
+      this.reactLandImpact = clamp(-this.reactAirVy / Math.max(1, info.jumpVel), 0.35, 1.4);
+    }
+    this.reactAirborne = airborne;
+    const restarted = kind !== this.reactKind || info.stateTime < this.reactStateTime - 1e-6;
+    if (restarted) {
+      if (kind === 'jump' && info.airJump) this.reactFlipAt = now;
+      if (kind === 'tumble' && this.reactKind !== 'tumble') { this.reactSpin = 0; this.reactTumbleSettled = false; }
+      this.reactKind = kind;
+      this.reactKindAt = now;
+    }
+    this.reactStateTime = info.stateTime;
+    if (airborne) this.reactAirVy = info.vy;
+    if ((kind === 'hit' || kind === 'tumble') && info.hitRemaining > this.reactHitLeft + 1e-4) {
+      this.reactHitTotal = info.hitRemaining;
+    }
+    this.reactHitLeft = info.hitRemaining;
+    const age = now - this.reactKindAt;
+    const spinStep = Math.max(0, now - this.reactSpinClock);
+    this.reactSpinClock = now;
+
+    const juice = this.juice;
+    juice.x = 0; juice.y = 0; juice.roll = 0; juice.pivot = 0; juice.sx = 1; juice.sy = 1;
+    const h = this.height;
+    const lean = clamp(info.vx * this.facingTarget / 9, -1, 1);
+    const vyN = clamp(info.vy / Math.max(1, info.jumpVel), -1.5, 1);
+    // A snappy crossfade into each new action instead of a long glide.
+    let amount = Math.max(blend, clamp(age / 0.05, 0, 1));
+
+    switch (kind) {
+      case 'jump':
+      case 'fall': {
+        // Rise → apex float → drop, straight from vertical speed.
+        const phase = vyN >= 0 ? 0.26 + (1 - vyN) * 0.19 : 0.45 + Math.min(1, -vyN) * 0.2;
+        this.posePhase('jump', phase);
+        if (vyN >= 0) this.overlay(AIR_APEX, AIR_RISE, clamp(vyN * 1.2, 0, 1), 0.85);
+        else this.overlay(AIR_APEX, AIR_FALL, clamp(-vyN * 1.4, 0, 1), 0.85);
+        juice.roll = -0.1 * lean;
+        if (kind === 'jump' && !info.airJump && age < TAKEOFF_STRETCH) {
+          const stretch = impactEnvelope(age, 0.04, TAKEOFF_STRETCH);
+          juice.sy += 0.16 * stretch;
+          juice.sx -= 0.08 * stretch;
+        }
+        const flipAge = now - this.reactFlipAt;
+        if (flipAge >= 0 && flipAge < AIR_FLIP) {
+          // Air jump: a tucked front flip about the belly.
+          const u = flipAge / AIR_FLIP;
+          juice.roll += -TAU * u * u * (3 - 2 * u);
+          juice.pivot = 1;
+          this.overlay(FLIP_TUCK, FLIP_TUCK, 0, Math.min(1, Math.sin(Math.PI * u) * 1.6));
+        }
+        if (info.fastFall && info.vy < 0) { juice.sy += 0.07; juice.sx -= 0.035; }
+        amount = Math.max(amount, 0.5);
+        break;
+      }
+      case 'attack': {
+        const phase = motion.phase ?? 0;
+        const light = isLightHit(motion.poseId);
+        if (this.authored && light) this.poseStudy('ready', now);
+        else this.applyMotion(motion, pose);
+        if (this.authored && hasMove(motion.poseId)) {
+          const weight = sampleMove(motion.poseId!, phase, this.moveScratch);
+          this.applyOverlay(moveJoints(motion.poseId!), weight);
+        }
+        // Coil down in the windup, stretch into the strike, lunge through it.
+        const heavy = light ? 0.55 : motion.poseId === 'finisher' ? 1.5 : 1;
+        const coil = phase < 0.3 ? Math.sin(Math.PI * 0.5 * phase / 0.3) : phase < 0.36 ? 1 - (phase - 0.3) / 0.06 : 0;
+        const strike = phase < 0.3 ? 0 : phase < 0.36 ? (phase - 0.3) / 0.06 : impactEnvelope(phase - 0.36, 0.0001, 0.5);
+        juice.sy += (-0.07 * coil + 0.05 * strike) * heavy;
+        juice.sx += (0.05 * coil - 0.03 * strike) * heavy;
+        juice.x += (-0.05 * coil + 0.16 * strike) * heavy * h;
+        if (motion.poseId === 'finisher') juice.y += (0.06 * strike - 0.04 * coil) * h;
+        amount = 1;
+        break;
+      }
+      case 'hit': {
+        if (info.frozen) { this.applyMotion(motion, pose); break; }
+        const strength = clamp(this.reactHitTotal / 0.6, 0.2, 1);
+        const progress = info.hitstop > 0 ? 0 : clamp(1 - info.hitRemaining / Math.max(0.0001, this.reactHitTotal), 0, 1);
+        // Pushed back = hit from the front; pushed forward = hit from behind.
+        const fromBehind = info.vx * this.facingTarget > 0.5;
+        // Snap to the recoil peak, hold a beat, then recover over the hitstun.
+        const recoil = (0.45 + 0.55 * strength) * (progress < 0.25 ? 1 : 1 - (progress - 0.25) / 0.75) ** 1.5;
+        if (this.authored) {
+          this.poseStudy('ready', now);
+          this.overlay(fromBehind ? HIT_FOLD : HIT_RECOIL, fromBehind ? HIT_FOLD : HIT_RECOIL, 0, recoil);
+        } else {
+          this.posePhase('hit', progress < 0.25 ? 0.09 + progress / 0.25 * 0.05 : 0.14 + (progress - 0.25) / 0.75 * 0.5);
+        }
+        juice.roll = (fromBehind ? -0.16 : 0.18) * strength * (1 - progress) ** 2;
+        juice.x = (fromBehind ? 0.06 : -0.08) * strength * h * (1 - progress);
+        this.shake(info, strength);
+        amount = 1;
+        break;
+      }
+      case 'tumble': {
+        const speed = Math.hypot(info.vx, info.vy);
+        const strength = clamp(this.reactHitTotal / 0.6, 0.3, 1);
+        if (!this.reactTumbleSettled && info.hitstop <= 0 && speed < 7) this.reactTumbleSettled = true;
+        if (this.authored) this.poseStudy('ready', now);
+        else this.posePhase('hit', 0.1);
+        if (!this.reactTumbleSettled) {
+          // Launched hard: curled up and spinning as fast as you're flying.
+          if (info.hitstop <= 0) this.reactSpin += spinStep * clamp(speed * 0.75, 6, 18);
+          this.overlay(TUMBLE_CURL, TUMBLE_CURL, 0, 1);
+        } else {
+          // Out of steam: roll upright and flail helplessly until you land.
+          this.reactSpin = ((this.reactSpin % TAU) + TAU) % TAU;
+          const target = this.reactSpin > Math.PI ? TAU : 0;
+          this.reactSpin += (target - this.reactSpin) * clamp(spinStep * 8, 0, 1);
+          const flail = Math.sin(now * 16);
+          this.overlay(AIR_FALL, TUMBLE_CURL, 0.3 + 0.2 * flail, 1);
+        }
+        juice.roll = this.reactSpin;
+        juice.pivot = 1;
+        this.shake(info, strength);
+        amount = 1;
+        break;
+      }
+      case 'landing': {
+        // Crash landing out of a launch: a deep crouch that pushes back up.
+        if (this.authored) this.poseStudy('ready', now);
+        else this.posePhase('jump', 0.73 + clamp(age / 0.2, 0, 1) * 0.21);
+        const give = 1 - clamp(age / 0.2, 0, 1);
+        this.overlay(LAND_CROUCH, LAND_CROUCH, 0, give);
+        juice.y -= LAND_CROUCH_DROP * h * give;
+        amount = 1;
+        break;
+      }
+      default:
+        this.applyMotion(motion, pose);
+        // Keep the studio's whole-body tilt (the KO sprawl) through the juice pass.
+        juice.roll = this.poseRoot.rotation.z;
+        break;
+    }
+
+    // Landing: squash by impact, knees give, then a little rebound.
+    const landAge = now - this.reactLandAt;
+    if (!airborne && landAge >= 0 && landAge < LAND_SQUASH) {
+      const impact = this.reactLandImpact;
+      const squash = impactEnvelope(landAge, 0.03, LAND_SQUASH * 0.7);
+      const rebound = landAge > LAND_SQUASH * 0.55 ? Math.sin(Math.PI * (landAge - LAND_SQUASH * 0.55) / (LAND_SQUASH * 0.45)) : 0;
+      juice.sy += -0.16 * impact * squash + 0.04 * impact * rebound;
+      juice.sx += 0.1 * impact * squash - 0.02 * impact * rebound;
+      if (kind === 'ready' || kind === 'run') {
+        const give = Math.min(1, squash * impact);
+        this.overlay(LAND_CROUCH, LAND_CROUCH, 0, give);
+        juice.y -= LAND_CROUCH_DROP * h * give;
+      }
+    }
+    return amount;
+  }
+
+  /** Lay a blend of two authored overlays over the current pose by `weight`. */
+  private overlay(a: Pose, b: Pose, t: number, weight: number): void {
+    if (weight <= 0 || !this.authored) return;
+    this.applyOverlay(blendOverlay(a, b, t, this.moveScratch, this.overlayJoints), weight);
+  }
+
+  private applyOverlay(joints: readonly JointName[], weight: number): void {
+    const amount = clamp(weight, 0, 1);
+    for (const name of joints) {
+      const joint = this.joints[name];
+      nativeRotation(this.moveScratch[name], this.scratchQuaternion, this.scratchEuler);
+      this.scratchQuaternion.premultiply(this.jointRest.get(joint)!);
+      joint.quaternion.slerp(this.scratchQuaternion, amount);
+    }
+  }
+
+  /** Hit freeze: the victim rattles in place, harder for harder hits. */
+  private shake(info: MotionInfo, strength: number): void {
+    if (info.hitstop <= 0) return;
+    const side = Math.floor(this.clock * 60) % 2 === 0 ? 1 : -1;
+    this.juice.x += side * this.height * (0.025 + 0.035 * strength);
+  }
+
+  private applyJuice(): void {
+    const j = this.juice;
+    this.resetPoseRoot();
+    this.poseRoot.scale.set(j.sx, j.sy, j.sx);
+    this.poseRoot.rotation.z = j.roll;
+    // Spin about the belly, not the feet.
+    const center = j.pivot * this.height * 0.5 * j.sy;
+    this.poseRoot.position.set(j.x + center * Math.sin(j.roll), j.y + center * (1 - Math.cos(j.roll)), 0);
   }
 
   private applyAttackVariant(poseId: string | undefined, pose: Pose, phase: number): void {

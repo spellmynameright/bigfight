@@ -38,6 +38,9 @@ spec; when a "bug report" describes intended-but-confusing behavior, fix the *co
 Visual redesigns go mockup-first: build options in the Character Lab (`/mockup.html`,
 `window.lab` = step/pick/attack), let Ryder & Jacob click through the animations, iterate on
 their picks, THEN port to the game. Don't restyle live game code on taste-guesses.
+Animation works the same way: the Move Lab (`/motion.html`) plays NOW vs NEW side by side,
+and `?moves=new` turns the reactive move set on in real fights. It becomes the default only
+after the family picks it.
 
 ## Design decisions that aren't obvious from code
 - Menu design language (2026-07-10, Jacob-approved): logo-style outlined titles everywhere;

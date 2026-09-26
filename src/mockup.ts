@@ -134,6 +134,10 @@ const galleryLink = document.createElement('a');
 galleryLink.textContent = 'ASSET GALLERY';
 galleryLink.href = `${import.meta.env.BASE_URL}assets.html?look=${ARENA_PRESENTATION ? 'arena' : 'classic'}`;
 presentationBar.appendChild(galleryLink);
+const moveLabLink = document.createElement('a');
+moveLabLink.textContent = 'MOVE LAB';
+moveLabLink.href = `${import.meta.env.BASE_URL}motion.html`;
+presentationBar.appendChild(moveLabLink);
 document.body.appendChild(presentationBar);
 
 function syncReviewLinks(): void {

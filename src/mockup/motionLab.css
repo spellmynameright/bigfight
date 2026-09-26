@@ -1,0 +1,46 @@
+@font-face { font-family: Barlow; src: url('/fonts/barlow-700.ttf') format('truetype'); font-weight: 700 900; font-display: swap; }
+@font-face { font-family: 'Barlow Condensed'; src: url('/fonts/barlow-condensed-900-italic.ttf') format('truetype'); font-weight: 900; font-style: italic; font-display: swap; }
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100dvh; overflow: hidden; background: #10223b; color: #fff;
+  font-family: Barlow, system-ui, sans-serif; touch-action: manipulation; }
+#stage { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+.ml-top { position: fixed; z-index: 3; top: env(safe-area-inset-top, 0px); left: 0; right: 0;
+  display: flex; align-items: center; gap: 12px; padding: 10px 16px; }
+.ml-title { flex: 1; min-width: 0; text-align: center; }
+.ml-title h1 { margin: 0; font: italic 900 clamp(26px, 5vw, 44px)/1 'Barlow Condensed', sans-serif; letter-spacing: 2px;
+  color: #ffd23f; -webkit-text-stroke: 2px #1e2a4a; paint-order: stroke fill; text-shadow: 0 4px 0 #1e2a4a; }
+.ml-title p { margin: 4px 0 0; font-size: clamp(11px, 1.8vw, 14px); font-weight: 700; color: #b9d7f5; }
+.ml-back, .ml-select, .ml-play, .ml-moves button { appearance: none; border: 0; border-radius: 12px; cursor: pointer;
+  font: 900 14px Barlow, system-ui, sans-serif; letter-spacing: .8px; color: #fff; text-decoration: none;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, .35); }
+.ml-back { display: grid; place-items: center; width: 44px; height: 44px; background: #1e3a5f; font-size: 18px; }
+.ml-select { height: 44px; padding: 0 14px; background: #2e9d46; max-width: 30vw; }
+.ml-play { display: grid; place-items: center; height: 44px; padding: 0 14px; background: #2f6fe0; white-space: nowrap; }
+.ml-back:active, .ml-moves button:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0, 0, 0, .35); }
+
+.ml-tag { position: fixed; z-index: 2; top: calc(env(safe-area-inset-top, 0px) + 92px); width: 50%; text-align: center;
+  font: italic 900 clamp(22px, 4vw, 34px)/1 'Barlow Condensed', sans-serif; letter-spacing: 3px;
+  -webkit-text-stroke: 2px #1e2a4a; paint-order: stroke fill; pointer-events: none; }
+.ml-tag-now { left: 0; color: #c9d4e2; }
+.ml-split { position: fixed; z-index: 1; left: 50%; top: 0; bottom: 0; width: 3px; margin-left: -1.5px;
+  background: linear-gradient(transparent, rgba(144, 200, 248, .55) 20%, rgba(144, 200, 248, .55) 80%, transparent); pointer-events: none; }
+.ml-tag-new { right: 0; color: #ffd23f; }
+
+.ml-moves { position: fixed; z-index: 3; left: 0; right: 0; bottom: env(safe-area-inset-bottom, 0px);
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 10px 16px 14px; }
+.ml-moves button { padding: 12px 14px; background: #e8413c; }
+.ml-moves .ml-all { background: #2f6fe0; }
+.ml-moves .ml-toggle { background: #1e3a5f; }
+.ml-moves .ml-toggle[aria-pressed='true'] { background: #ffd23f; color: #3b2a00; }
+.ml-moves button:focus-visible, .ml-select:focus-visible, .ml-back:focus-visible { outline: 3px solid #ffd23f; outline-offset: 2px; }
+
+@media (max-width: 700px) {
+  .ml-top { gap: 8px; padding: 8px 12px; }
+  .ml-select, .ml-play { height: 38px; padding: 0 10px; font-size: 12px; }
+  .ml-back { width: 38px; height: 38px; }
+  .ml-tag { top: calc(env(safe-area-inset-top, 0px) + 78px); }
+  .ml-moves { gap: 6px; padding: 8px 12px 10px; }
+  .ml-moves button { padding: 9px 10px; font-size: 12px; }
+}

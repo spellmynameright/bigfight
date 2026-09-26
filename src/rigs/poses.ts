@@ -23,6 +23,30 @@ export interface PoseMotion {
   phase?: number;
   speed?: number;
   poseId?: string;
+  /** View-only body state for the new move set (`?moves=new`); the current set ignores it. */
+  info?: MotionInfo;
+}
+
+/** What the body is doing right now, so animation can react instead of holding a pose. */
+export interface MotionInfo {
+  /** Seconds in the current state; restarts on a double jump. */
+  stateTime: number;
+  /** Body velocity, u/s. */
+  vx: number;
+  vy: number;
+  /** The fighter's ground jump velocity — normalizes `vy`. */
+  jumpVel: number;
+  /** Standing on something (landings are measured air → ground). */
+  grounded: boolean;
+  /** The current jump started in the air (double jump). */
+  airJump: boolean;
+  fastFall: boolean;
+  /** Seconds of hitstun / launch left (0 outside those states). */
+  hitRemaining: number;
+  /** Seconds of hit freeze left — the victim shakes through it. */
+  hitstop: number;
+  /** Held by a freeze effect: hold still, no recoil. */
+  frozen: boolean;
 }
 export type Pose = Partial<Record<JointName, JointRotation>> & { motion?: PoseMotion };
 

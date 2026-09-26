@@ -15,17 +15,9 @@ import { simPhase } from '../net/simPhase';
 import { netIdOf, restoreIdSet, type SimRegistry, type StateIO } from '../net/snapshots';
 import { Body } from '../physics/Body';
 import { FighterRig, type Rig } from '../rigs/FighterRig';
-import {
-  poseAttack,
-  poseFall,
-  poseHit,
-  poseIdle,
-  poseJump,
-  poseKO,
-  poseLanding,
-  poseRun,
-  poseTumble,
-} from '../rigs/poses';
+import { fighterPose } from '../rigs/fighterPose';
+import { NEW_MOVES } from '../rigs/newMoves';
+import type { MotionInfo } from '../rigs/poses';
 import type { TrailHandle } from '../render/Trails';
 import { Entity, type WorldCtx } from './Entity';
 
@@ -103,6 +95,10 @@ export class Fighter extends Entity {
   jumpsUsed = 0;
   hitstopTimer = 0;
   invulnTimer = 0;
+  /** View-only body state handed to the rig each frame (see MotionInfo). */
+  private readonly motionInfo: MotionInfo = {
+    stateTime: 0, vx: 0, vy: 0, jumpVel: 1, grounded: true, airJump: false, fastFall: false, hitRemaining: 0, hitstop: 0, frozen: false,
+  };
   comboIndex = 0;
   comboQueued = false;
   currentAttack: AttackDef | null = null;
@@ -325,6 +321,8 @@ export class Fighter extends Entity {
 
     if (this.hitstopTimer > 0) {
       this.hitstopTimer = Math.max(0, this.hitstopTimer - dt);
+      // The new move set shows the hit through the freeze (victim shakes).
+      if (NEW_MOVES && !simPhase.resimulating) this.updateVisuals(ctx, dt);
       return;
     }
 
@@ -845,29 +843,25 @@ export class Fighter extends Entity {
   }
 
   private selectPose(t: number) {
-    switch (this.state) {
-      case 'idle':
-        return poseIdle(t);
-      case 'run':
-        return poseRun(t, Math.abs(this.body.vel.x) / Math.max(0.0001, this.def.speed));
-      case 'jump':
-        return poseJump();
-      case 'fall':
-        return poseFall();
-      case 'attack':
-      case 'weaponAbility':
-        return poseAttack(this.currentAttack?.poseId ?? 'finisher', this.attackPhase(), this.currentAttack ?? undefined);
-      case 'hitstun':
-        return poseHit();
-      case 'launched':
-        return poseTumble(t);
-      case 'landing':
-        return poseLanding();
-      case 'ko':
-        return poseKO();
-      case 'respawning':
-        return poseIdle(t);
-    }
+    const info = this.motionInfo;
+    info.stateTime = t;
+    info.vx = this.body.vel.x;
+    info.vy = this.body.vel.y;
+    info.jumpVel = this.def.jumpVel;
+    info.grounded = this.body.grounded;
+    info.airJump = this.jumpsUsed > 1;
+    info.fastFall = this.body.fastFalling;
+    info.hitRemaining = this.state === 'hitstun' || this.state === 'launched' ? Math.max(0, -t) : 0;
+    info.hitstop = this.hitstopTimer;
+    info.frozen = this.freezeTimer > 0;
+    return fighterPose(
+      this.state,
+      t,
+      Math.abs(this.body.vel.x) / Math.max(0.0001, this.def.speed),
+      this.currentAttack,
+      this.attackPhase(),
+      info,
+    );
   }
 
   private fireProjectileAttack(ctx: WorldCtx, attack: AttackDef): void {
