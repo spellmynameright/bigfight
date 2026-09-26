@@ -239,9 +239,13 @@ function build(): void {
   const def = CHARACTERS.find((c) => c.id === fighterId)!;
   actors = [new Actor(def, -SPACING, false), new Actor(def, SPACING, true)];
   for (const actor of actors) scene.add(actor.group);
-  const url = new URL(location.href);
-  url.searchParams.set('fighter', fighterId);
-  history.replaceState(null, '', url);
+  try {
+    const url = new URL(location.href);
+    url.searchParams.set('fighter', fighterId);
+    history.replaceState(null, '', url);
+  } catch {
+    // Sandboxed hosts may refuse history edits; the lab works without the deep link.
+  }
 }
 
 // ---------------------------------------------------------------------------

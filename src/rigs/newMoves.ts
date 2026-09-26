@@ -8,13 +8,14 @@
  * hit freeze, launches spin by speed, and light combo hits get their own
  * snappy strikes. View-only — the sim never reads any of it.
  *
- * Off unless the page URL has `?moves=new`; the Move Lab turns it on per rig.
+ * Off unless the page URL has `?moves=new` (or `#newmoves`, for hosts that
+ * drop query strings); the Move Lab turns it on per rig.
  */
 import { clamp, lerp } from '../core/math';
 import type { JointName, JointRotation, Pose } from './poses';
 
-const requested = typeof location === 'undefined' ? null : new URLSearchParams(location.search).get('moves');
-export const NEW_MOVES = requested === 'new';
+export const NEW_MOVES = typeof location !== 'undefined'
+  && (new URLSearchParams(location.search).get('moves') === 'new' || location.hash === '#newmoves');
 
 type Ease = 'smooth' | 'snap';
 /** `at` is the attack's visual phase: windup 0–0.3, active 0.3–0.65, recover 0.65–1. */
