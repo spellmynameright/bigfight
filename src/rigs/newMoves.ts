@@ -17,13 +17,6 @@ import type { JointName, JointRotation, Pose } from './poses';
 export const NEW_MOVES = typeof location !== 'undefined'
   && (new URLSearchParams(location.search).get('moves') === 'new' || location.hash === '#newmoves');
 
-/**
- * Relic fighters (Volt, Kaze, Titan) are carved as flat slabs that read well
- * head-on but thin from the side, which is how the game camera sees them. The
- * new look builds them this much deeper front-to-back (front view unchanged).
- */
-export const RELIC_FIGHTER_DEPTH = 1.9;
-
 type Ease = 'smooth' | 'snap';
 /** Whole-body motion for a move: lunge `x` and hop `y` in body heights, `roll` (pitch, + = lean back) and `yaw` in radians. */
 export interface MoveBody { x?: number; y?: number; roll?: number; yaw?: number }

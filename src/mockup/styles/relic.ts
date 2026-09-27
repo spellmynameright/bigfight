@@ -221,36 +221,6 @@ class Sculpture {
     this.gem(parent, [0, y - height * 0.6, 0], [width * 0.31, height * 0.16, depth * 0.44], 'metal');
   }
 
-  /**
-   * Thickens the whole sculpture front-to-back by `k` (native Z): every part
-   * gets deeper and front/back pieces move out with it, so a side view gains
-   * body without the front view changing. Parent frames only turn about Z or
-   * scale uniformly here, so each part is scaled in its parent's frame.
-   */
-  deepen(k: number): void {
-    if (k === 1) return;
-    const depth = new THREE.Matrix4().makeScale(1, 1, k);
-    const baked = new Set<THREE.BufferGeometry>();
-    this.root.traverse((node) => {
-      if (node === this.root) return;
-      node.position.z *= k;
-      if (!(node instanceof THREE.Mesh)) return;
-      // Keep the part's own rotation (so sizing bounds stay as authored) and
-      // bake parent-frame depth into its geometry: R⁻¹ · depth · R · S.
-      const turn = new THREE.Matrix4().makeRotationFromQuaternion(node.quaternion);
-      const shape = turn.clone().invert().multiply(depth).multiply(turn).multiply(new THREE.Matrix4().makeScale(node.scale.x, node.scale.y, node.scale.z));
-      if (baked.has(node.geometry)) {
-        node.geometry = node.geometry.clone();
-        this.geometries.add(node.geometry);
-      }
-      node.geometry.applyMatrix4(shape);
-      node.geometry.computeBoundingBox();
-      node.geometry.computeBoundingSphere();
-      baked.add(node.geometry);
-      node.scale.set(1, 1, 1);
-    });
-  }
-
   finish(): ConceptRig {
     for (const shoulder of [...this.joints]) {
       if (shoulder.kind !== 'armL' && shoulder.kind !== 'armR') continue;
@@ -1114,8 +1084,7 @@ function friendlyWisp(s: Sculpture): void {
   }
 }
 
-/** `depth` > 1 thickens the sculpture front-to-back (see Sculpture.deepen). */
-export function buildRelic(subject: ConceptSubject, depth = 1): ConceptRig {
+export function buildRelic(subject: ConceptSubject): ConceptRig {
   const sculpture = new Sculpture(subject);
   switch (subject.id) {
     case 'volt': sentinel(sculpture); break;
@@ -1147,7 +1116,6 @@ export function buildRelic(subject: ConceptSubject, depth = 1): ConceptRig {
     case 'ghostBuddy': friendlyWisp(sculpture); break;
     default: throw new Error(`Missing Relic sculpture: ${subject.id}`);
   }
-  sculpture.deepen(depth);
   sculpture.root.name = `relic-${subject.id}`;
   return sculpture.finish();
 }
