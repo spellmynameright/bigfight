@@ -10,7 +10,7 @@ import type { MotionInfo } from './poses';
 
 const subject = (id: string) => SUBJECTS.find((s) => s.id === id)!;
 const info = (over: Partial<MotionInfo> = {}): MotionInfo => ({
-  stateTime: 0, vx: 0, vy: 0, jumpVel: 14, grounded: true, airJump: false, fastFall: false, hitRemaining: 0, hitstop: 0, frozen: false, ...over,
+  stateTime: 0, vx: 0, vy: 0, jumpVel: 14, comboHit: -1, grounded: true, airJump: false, fastFall: false, hitRemaining: 0, hitstop: 0, frozen: false, ...over,
 });
 
 function snapshot(rig: ApprovedRig): number[] {
@@ -81,21 +81,40 @@ test('the new move set stays finite and settles back to a clean stance', () => {
   }
 });
 
-test('the first two combo hits are different moves for every fighter', () => {
+test('every fighter throws three different combo hits', () => {
   for (const def of CHARACTERS) {
     const rig = buildApprovedRig(subject(def.id), def.proportions.height);
     rig.newMoves = true;
     const strike = (hit: number) => {
       const attack = def.combo[hit]!;
       const total = attack.windup + attack.active + attack.recover;
-      const phase = (attack.windup + attack.active * 0.5) / total;
-      rig.setPose(fighterPose('attack', 0, 0, attack, phase, info()), 1);
-      return (['armL', 'armR', 'torso', 'legL', 'legR'] as const).map((j) => rig.joints[j].quaternion.clone());
+      // Past the snap, while the hitbox is live.
+      const phase = (attack.windup + attack.active * 0.6) / total;
+      rig.setPose(fighterPose('attack', 0, 0, attack, phase, info({ comboHit: hit })), 1);
+      const joints = (['armL', 'armR', 'torso', 'head', 'legL', 'legR', 'root'] as const).map((j) => rig.joints[j].quaternion.clone());
+      return { joints, reach: rig.joints.root.position.clone() };
     };
-    const first = strike(0);
-    const second = strike(1);
-    const largest = Math.max(...first.map((q, i) => q.angleTo(second[i]!)));
-    assert.ok(largest > 0.5, `${def.id} hits 1 and 2 still look alike (max joint difference ${largest.toFixed(2)} rad)`);
+    const hits = [strike(0), strike(1), strike(2)];
+    for (const [a, b] of [[0, 1], [0, 2], [1, 2]] as const) {
+      const turn = Math.max(...hits[a]!.joints.map((q, i) => q.angleTo(hits[b]!.joints[i]!)));
+      const shift = hits[a]!.reach.distanceTo(hits[b]!.reach) / def.proportions.height;
+      assert.ok(turn > 0.5 || shift > 0.15, `${def.id} hits ${a + 1} and ${b + 1} look alike (turn ${turn.toFixed(2)} rad, shift ${shift.toFixed(2)})`);
+    }
     rig.dispose();
   }
+});
+
+test('signature moves are for combo hits only (weapons and powerups keep their look)', () => {
+  const def = CHARACTERS.find((c) => c.id === 'titan')!;
+  const rig = buildApprovedRig(subject('titan'), def.proportions.height);
+  rig.newMoves = true;
+  const attack = def.combo[2]!;
+  const phase = (attack.windup + attack.active * 0.6) / (attack.windup + attack.active + attack.recover);
+  const pose = (comboHit: number) => {
+    rig.setPose(fighterPose('attack', 0, 0, attack, phase, info({ comboHit })), 1);
+    return rig.joints.armR.quaternion.clone();
+  };
+  // Same `slam` poseId: the combo finisher is the piston punch, the hammer is not.
+  assert.ok(pose(2).angleTo(pose(-1)) > 0.3);
+  rig.dispose();
 });

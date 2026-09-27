@@ -27,6 +27,9 @@ html, body { margin: 0; height: 100dvh; overflow: hidden; background: #10223b; c
 .ml-split { position: fixed; z-index: 1; left: 50%; top: 0; bottom: 0; width: 3px; margin-left: -1.5px;
   background: linear-gradient(transparent, rgba(144, 200, 248, .55) 20%, rgba(144, 200, 248, .55) 80%, transparent); pointer-events: none; }
 .ml-tag-new { right: 0; color: #ffd23f; }
+.ml-callout { position: fixed; z-index: 2; right: 0; width: 50%; top: calc(env(safe-area-inset-top, 0px) + 132px);
+  text-align: center; padding: 0 16px; font: 900 clamp(13px, 2vw, 17px)/1.2 Barlow, system-ui, sans-serif;
+  letter-spacing: 1px; color: #fff; text-shadow: 0 2px 0 #1e2a4a; pointer-events: none; }
 
 .ml-moves { position: fixed; z-index: 3; left: 0; right: 0; bottom: env(safe-area-inset-bottom, 0px);
   display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 10px 16px 14px; }
@@ -41,6 +44,7 @@ html, body { margin: 0; height: 100dvh; overflow: hidden; background: #10223b; c
   .ml-select, .ml-play { height: 38px; padding: 0 10px; font-size: 12px; }
   .ml-back { width: 38px; height: 38px; }
   .ml-tag { top: calc(env(safe-area-inset-top, 0px) + 78px); }
+  .ml-callout { top: calc(env(safe-area-inset-top, 0px) + 108px); }
   .ml-moves { gap: 6px; padding: 8px 12px 10px; }
   .ml-moves button { padding: 9px 10px; font-size: 12px; }
 }

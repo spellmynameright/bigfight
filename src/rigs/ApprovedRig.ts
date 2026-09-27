@@ -11,8 +11,9 @@ import type { JointName, JointRotation, MotionInfo, Pose } from './poses';
 import { approvedStyleFor } from './approvedStyles';
 import {
   AIR_APEX, AIR_FALL, AIR_RISE, FLIP_TUCK, HIT_FOLD, HIT_RECOIL, LAND_CROUCH, LAND_CROUCH_DROP, MOVE_JOINTS, NEW_MOVES, TUMBLE_CURL,
-  blendOverlay, hasMove, impactEnvelope, isLightHit, moveJoints, sampleMove,
+  blendOverlay, hasMove, impactEnvelope, isLightHit, moveJoints, sampleKeys, sampleMove,
 } from './newMoves';
+import { signatureMove } from './signatureMoves';
 
 type Motion = NonNullable<Pose['motion']>;
 type Transform = { node: THREE.Object3D; position: THREE.Vector3; quaternion: THREE.Quaternion; scale: THREE.Vector3 };
@@ -83,7 +84,10 @@ export class ApprovedRig implements Rig {
   newMoves = NEW_MOVES;
   private readonly moveScratch = Object.fromEntries(MOVE_JOINTS.map(name => [name, { x: 0, y: 0, z: 0 }])) as Record<JointName, Required<JointRotation>>;
   /** Whole-body offsets applied after blending: lunge, squash/stretch, flips. */
-  private readonly juice = { x: 0, y: 0, roll: 0, pivot: 0, sx: 1, sy: 1 };
+  private readonly juice = { x: 0, y: 0, roll: 0, yaw: 0, pivot: 0, sx: 1, sy: 1 };
+  private readonly moveBody = { x: 0, y: 0, roll: 0, yaw: 0 };
+  /** Signature fades (Shade's vanish) multiply the ghost opacity the game sets. */
+  private flickerAlpha = 1;
   private reactKind: Motion['kind'] | null = null;
   private reactKindAt = 0;
   private reactStateTime = 0;
@@ -344,7 +348,8 @@ export class ApprovedRig implements Rig {
     this.reactSpinClock = now;
 
     const juice = this.juice;
-    juice.x = 0; juice.y = 0; juice.roll = 0; juice.pivot = 0; juice.sx = 1; juice.sy = 1;
+    juice.x = 0; juice.y = 0; juice.roll = 0; juice.yaw = 0; juice.pivot = 0; juice.sx = 1; juice.sy = 1;
+    let flicker = 1;
     const h = this.height;
     const lean = clamp(info.vx * this.facingTarget / 9, -1, 1);
     const vyN = clamp(info.vy / Math.max(1, info.jumpVel), -1.5, 1);
@@ -380,11 +385,30 @@ export class ApprovedRig implements Rig {
       case 'attack': {
         const phase = motion.phase ?? 0;
         const light = isLightHit(motion.poseId);
-        if (this.authored && light) this.poseStudy('ready', now);
-        else this.applyMotion(motion, pose);
-        if (this.authored && hasMove(motion.poseId)) {
-          const weight = sampleMove(motion.poseId!, phase, this.moveScratch);
-          this.applyOverlay(moveJoints(motion.poseId!), weight);
+        const signature = this.authored ? signatureMove(this.subject.id, info.comboHit) : undefined;
+        if (signature?.keys) {
+          // This fighter's own move for this combo hit.
+          this.poseStudy('ready', now);
+          const body = this.moveBody;
+          this.applyOverlay(signature.joints, sampleKeys(signature.keys, signature.joints, phase, this.moveScratch, body));
+          juice.x += body.x * h;
+          juice.y += body.y * h;
+          juice.roll += body.roll;
+          juice.yaw += body.yaw;
+          if (body.roll !== 0) juice.pivot = 1;
+        } else {
+          if (this.authored && light) this.poseStudy('ready', now);
+          else this.applyMotion(motion, pose);
+          if (this.authored && hasMove(motion.poseId)) {
+            const weight = sampleMove(motion.poseId!, phase, this.moveScratch);
+            this.applyOverlay(moveJoints(motion.poseId!), weight);
+          }
+        }
+        if (signature?.flicker) {
+          // Now you see me... now you don't: fade out in the windup, strike
+          // almost invisible, pop back in on the recovery.
+          const gone = phase < 0.1 ? 0 : phase < 0.3 ? (phase - 0.1) / 0.2 : phase < 0.8 ? 1 : 1 - (phase - 0.8) / 0.15;
+          flicker = 1 - 0.9 * clamp(gone, 0, 1);
         }
         // Coil down in the windup, stretch into the strike, lunge through it.
         const heavy = light ? 0.55 : motion.poseId === 'finisher' ? 1.5 : 1;
@@ -392,7 +416,7 @@ export class ApprovedRig implements Rig {
         const strike = phase < 0.3 ? 0 : phase < 0.36 ? (phase - 0.3) / 0.06 : impactEnvelope(phase - 0.36, 0.0001, 0.5);
         juice.sy += (-0.07 * coil + 0.05 * strike) * heavy;
         juice.sx += (0.05 * coil - 0.03 * strike) * heavy;
-        juice.x += (-0.05 * coil + 0.16 * strike) * heavy * h;
+        if (!signature?.keys) juice.x += (-0.05 * coil + 0.16 * strike) * heavy * h;
         if (motion.poseId === 'finisher') juice.y += (0.06 * strike - 0.04 * coil) * h;
         amount = 1;
         break;
@@ -472,6 +496,10 @@ export class ApprovedRig implements Rig {
         juice.y -= LAND_CROUCH_DROP * h * give;
       }
     }
+    if (flicker !== this.flickerAlpha) {
+      this.flickerAlpha = flicker;
+      this.applyOpacity();
+    }
     return amount;
   }
 
@@ -503,6 +531,7 @@ export class ApprovedRig implements Rig {
     this.resetPoseRoot();
     this.poseRoot.scale.set(j.sx, j.sy, j.sx);
     this.poseRoot.rotation.z = j.roll;
+    this.poseRoot.rotation.y = j.yaw;
     // Spin about the belly, not the feet.
     const center = j.pivot * this.height * 0.5 * j.sy;
     this.poseRoot.position.set(j.x + center * Math.sin(j.roll), j.y + center * (1 - Math.cos(j.roll)), 0);
@@ -626,7 +655,7 @@ export class ApprovedRig implements Rig {
     this.shadow.position.y = groundLocalY + 0.025;
     const size = this.height * 0.23 * (1 - this.shadowAirborne * 0.45);
     this.shadow.scale.set(size, size * 0.68, 1);
-    this.shadow.material.opacity = 0.28 * (1 - this.shadowAirborne * 0.6) * this.ghostAlpha;
+    this.shadow.material.opacity = 0.28 * (1 - this.shadowAirborne * 0.6) * this.ghostAlpha * this.flickerAlpha;
   }
 
   flashColor(color: number, seconds: number): void {
@@ -638,16 +667,21 @@ export class ApprovedRig implements Rig {
 
   setGhostOpacity(alpha: number): void {
     this.ghostAlpha = clamp(alpha, 0, 1);
+    this.applyOpacity();
+  }
+
+  private applyOpacity(): void {
+    const alpha = this.ghostAlpha * this.flickerAlpha;
     for (const entry of this.surfaces) {
-      const transparent = entry.transparent || this.ghostAlpha < 1;
+      const transparent = entry.transparent || alpha < 1;
       if (transparent !== entry.material.transparent) {
         entry.material.transparent = transparent;
         entry.material.needsUpdate = true;
       }
-      entry.material.opacity = entry.opacity * this.ghostAlpha;
-      entry.material.depthWrite = entry.depthWrite && this.ghostAlpha >= 0.95;
+      entry.material.opacity = entry.opacity * alpha;
+      entry.material.depthWrite = entry.depthWrite && alpha >= 0.95;
     }
-    this.shadow.material.opacity = 0.28 * (1 - this.shadowAirborne * 0.6) * this.ghostAlpha;
+    this.shadow.material.opacity = 0.28 * (1 - this.shadowAirborne * 0.6) * alpha;
   }
 
   setAngry(on: boolean): void {

@@ -18,8 +18,14 @@ export const NEW_MOVES = typeof location !== 'undefined'
   && (new URLSearchParams(location.search).get('moves') === 'new' || location.hash === '#newmoves');
 
 type Ease = 'smooth' | 'snap';
-/** `at` is the attack's visual phase: windup 0–0.3, active 0.3–0.65, recover 0.65–1. */
-interface MoveKey { at: number; weight: number; ease?: Ease; pose: Pose }
+/** Whole-body motion for a move: lunge `x` and hop `y` in body heights, `roll` (pitch, + = lean back) and `yaw` in radians. */
+export interface MoveBody { x?: number; y?: number; roll?: number; yaw?: number }
+/**
+ * `at` is the attack's visual phase: windup 0–0.3, active 0.3–0.65, recover
+ * 0.65–1. `weight` fades the joints over the stance underneath; `body` is not
+ * weighted, so keys must bring it back to rest themselves (yaw may end at 2π).
+ */
+export interface MoveKey { at: number; weight: number; ease?: Ease; pose: Pose; body?: MoveBody }
 
 // Profile convention (see poses.ts): z = sagittal swing. Anticipation coils
 // early and HOLDS, the strike snaps in a few frames right at the hitbox, the
@@ -81,13 +87,16 @@ const MOVES: Record<string, readonly MoveKey[]> = {
   ],
 };
 const LIGHT_HITS = new Set(['jab1', 'jab2']);
-const MOVE_MASKS: Record<string, JointName[]> = Object.fromEntries(Object.entries(MOVES).map(([id, keys]) => [
-  id, (['hips', 'torso', 'head', 'armL', 'armR', 'foreArmL', 'foreArmR', 'legL', 'legR', 'shinL', 'shinR'] as JointName[])
-    .filter((joint) => keys.some((key) => key.pose[joint])),
-]));
+const MOVE_MASKS: Record<string, readonly JointName[]> = Object.fromEntries(Object.entries(MOVES).map(([id, keys]) => [id, jointsOf(keys)]));
+
+/** The joints any key of a move touches. */
+export function jointsOf(keys: readonly MoveKey[]): JointName[] {
+  return (['hips', 'torso', 'head', 'armL', 'armR', 'foreArmL', 'foreArmR', 'legL', 'legR', 'shinL', 'shinR'] as JointName[])
+    .filter((joint) => keys.some((key) => key.pose[joint]));
+}
 
 /** Swap the arms (and the stepping leg) of a pose, then apply overrides. */
-function mirrorArms(pose: Pose, overrides: Pose): Pose {
+export function mirrorArms(pose: Pose, overrides: Pose): Pose {
   const out: Pose = { ...pose };
   const swap = (a: JointName, b: JointName) => { const t = pose[a]; out[a] = pose[b]; out[b] = t; };
   swap('armL', 'armR'); swap('foreArmL', 'foreArmR'); swap('legL', 'legR'); swap('shinL', 'shinR');
@@ -115,7 +124,17 @@ export const MOVE_JOINTS: readonly JointName[] = ['hips', 'torso', 'head', 'armL
  * and returns how strongly it overrides the pose underneath (0–1).
  */
 export function sampleMove(poseId: string, phase: number, out: Record<JointName, Required<JointRotation>>): number {
-  const keys = MOVES[poseId]!;
+  return sampleKeys(MOVES[poseId]!, MOVE_MASKS[poseId]!, phase, out);
+}
+
+/** Samples keys into `out` for `joints` (and `body`, when given); returns the joint weight. */
+export function sampleKeys(
+  keys: readonly MoveKey[],
+  joints: readonly JointName[],
+  phase: number,
+  out: Record<JointName, Required<JointRotation>>,
+  body?: Required<MoveBody>,
+): number {
   const p = clamp(phase, 0, 1);
   let a = keys[0]!;
   let b = keys[keys.length - 1]!;
@@ -124,13 +143,19 @@ export function sampleMove(poseId: string, phase: number, out: Record<JointName,
   }
   const raw = clamp((p - a.at) / Math.max(0.0001, b.at - a.at), 0, 1);
   const t = b.ease === 'snap' ? 1 - (1 - raw) ** 4 : raw * raw * (3 - 2 * raw);
-  for (const joint of MOVE_MASKS[poseId]!) {
+  for (const joint of joints) {
     const from = a.pose[joint];
     const to = b.pose[joint];
     const target = out[joint];
     target.x = lerp(from?.x ?? 0, to?.x ?? 0, t);
     target.y = lerp(from?.y ?? 0, to?.y ?? 0, t);
     target.z = lerp(from?.z ?? 0, to?.z ?? 0, t);
+  }
+  if (body) {
+    body.x = lerp(a.body?.x ?? 0, b.body?.x ?? 0, t);
+    body.y = lerp(a.body?.y ?? 0, b.body?.y ?? 0, t);
+    body.roll = lerp(a.body?.roll ?? 0, b.body?.roll ?? 0, t);
+    body.yaw = lerp(a.body?.yaw ?? 0, b.body?.yaw ?? 0, t);
   }
   return lerp(a.weight, b.weight, t);
 }

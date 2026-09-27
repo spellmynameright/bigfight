@@ -24,6 +24,7 @@ import { addPresentationLights, applyPresentation, configurePresentationRenderer
 import { toonRamp } from './render/toon';
 import { buildApprovedRig, type ApprovedRig } from './rigs/ApprovedRig';
 import { fighterPose } from './rigs/fighterPose';
+import { signatureMove } from './rigs/signatureMoves';
 import type { MotionInfo } from './rigs/poses';
 import './mockup/motionLab.css';
 
@@ -50,7 +51,7 @@ class Actor {
   attackTime = 0;
   private combo: AttackDef[] = [];
   private readonly info: MotionInfo = {
-    stateTime: 0, vx: 0, vy: 0, jumpVel: 1, grounded: true, airJump: false, fastFall: false, hitRemaining: 0, hitstop: 0, frozen: false,
+    stateTime: 0, vx: 0, vy: 0, jumpVel: 1, comboHit: -1, grounded: true, airJump: false, fastFall: false, hitRemaining: 0, hitstop: 0, frozen: false,
   };
 
   constructor(readonly def: CharacterDef, readonly homeX: number, newMoves: boolean) {
@@ -185,6 +186,7 @@ class Actor {
     info.vx = this.vx;
     info.vy = this.vy;
     info.jumpVel = this.def.jumpVel;
+    info.comboHit = this.attack ? this.def.combo.indexOf(this.attack) : -1;
     info.grounded = this.grounded;
     info.airJump = this.jumpsUsed > 1;
     info.fastFall = this.fastFall;
@@ -265,7 +267,18 @@ let queue: Move[] = [];
 let scriptTime = 0;
 let script: { length: number; cues: Cue[]; next: number } | null = null;
 
+const callout = document.getElementById('callout')!;
+
+/** Names each of the new combo's hits as it lands, so the family can say which one to change. */
+function updateCallout(): void {
+  const actor = actors[1];
+  const hit = actor?.attack ? actor.def.combo.indexOf(actor.attack) : -1;
+  const move = actor ? signatureMove(actor.def.id, hit) : undefined;
+  if (move) callout.textContent = `HIT ${hit + 1}: ${move.name.toUpperCase()}`;
+}
+
 function play(moves: Move[]): void {
+  callout.textContent = '';
   queue = [...moves];
   script = null;
   for (const actor of actors) actor.reset();
@@ -361,6 +374,7 @@ function tick(dt: number): void {
   const simDt = dt * (slow ? 0.25 : 1);
   advanceScript(simDt);
   for (const actor of actors) actor.step(simDt);
+  updateCallout();
   frameCamera(dt);
 }
 

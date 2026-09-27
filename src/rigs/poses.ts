@@ -36,6 +36,8 @@ export interface MotionInfo {
   vy: number;
   /** The fighter's ground jump velocity — normalizes `vy`. */
   jumpVel: number;
+  /** Which combo hit is playing (0–2), or -1 for weapons, powerups and everything else. */
+  comboHit: number;
   /** Standing on something (landings are measured air → ground). */
   grounded: boolean;
   /** The current jump started in the air (double jump). */

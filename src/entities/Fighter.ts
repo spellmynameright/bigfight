@@ -97,7 +97,7 @@ export class Fighter extends Entity {
   invulnTimer = 0;
   /** View-only body state handed to the rig each frame (see MotionInfo). */
   private readonly motionInfo: MotionInfo = {
-    stateTime: 0, vx: 0, vy: 0, jumpVel: 1, grounded: true, airJump: false, fastFall: false, hitRemaining: 0, hitstop: 0, frozen: false,
+    stateTime: 0, vx: 0, vy: 0, jumpVel: 1, comboHit: -1, grounded: true, airJump: false, fastFall: false, hitRemaining: 0, hitstop: 0, frozen: false,
   };
   comboIndex = 0;
   comboQueued = false;
@@ -848,6 +848,7 @@ export class Fighter extends Entity {
     info.vx = this.body.vel.x;
     info.vy = this.body.vel.y;
     info.jumpVel = this.def.jumpVel;
+    info.comboHit = this.currentAttack && !this.currentAttackIsWeapon ? this.def.combo.indexOf(this.currentAttack) : -1;
     info.grounded = this.body.grounded;
     info.airJump = this.jumpsUsed > 1;
     info.fastFall = this.body.fastFalling;
