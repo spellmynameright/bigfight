@@ -17,6 +17,13 @@ import type { JointName, JointRotation, Pose } from './poses';
 export const NEW_MOVES = typeof location !== 'undefined'
   && (new URLSearchParams(location.search).get('moves') === 'new' || location.hash === '#newmoves');
 
+/**
+ * Smash-style stance: fighters stand turned this far toward the camera
+ * (radians) instead of in flat profile, so their front design and body
+ * depth both read. Mid-turn they swing through facing the camera.
+ */
+export const CAMERA_TURN = 0.52;
+
 type Ease = 'smooth' | 'snap';
 /** Whole-body motion for a move: lunge `x` and hop `y` in body heights, `roll` (pitch, + = lean back) and `yaw` in radians. */
 export interface MoveBody { x?: number; y?: number; roll?: number; yaw?: number }

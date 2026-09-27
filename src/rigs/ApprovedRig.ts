@@ -10,7 +10,7 @@ import type { Rig } from './FighterRig';
 import type { JointName, JointRotation, MotionInfo, Pose } from './poses';
 import { approvedStyleFor } from './approvedStyles';
 import {
-  AIR_APEX, AIR_FALL, AIR_RISE, FLIP_TUCK, HIT_FOLD, HIT_RECOIL, LAND_CROUCH, LAND_CROUCH_DROP, MOVE_JOINTS, NEW_MOVES, TUMBLE_CURL,
+  AIR_APEX, AIR_FALL, AIR_RISE, FLIP_TUCK, HIT_FOLD, HIT_RECOIL, LAND_CROUCH, LAND_CROUCH_DROP, CAMERA_TURN, MOVE_JOINTS, NEW_MOVES, TUMBLE_CURL,
   blendOverlay, hasMove, impactEnvelope, isLightHit, moveJoints, sampleKeys, sampleMove,
 } from './newMoves';
 import { signatureMove } from './signatureMoves';
@@ -82,6 +82,8 @@ export class ApprovedRig implements Rig {
   private disposed = false;
   /** Reactive move set (see newMoves.ts). Defaults to the `?moves=new` flag. */
   newMoves = NEW_MOVES;
+  /** Stand turned toward the camera (fighters, with the new set); 0 = flat profile. */
+  cameraTurn: number;
   private readonly moveScratch = Object.fromEntries(MOVE_JOINTS.map(name => [name, { x: 0, y: 0, z: 0 }])) as Record<JointName, Required<JointRotation>>;
   /** Whole-body offsets applied after blending: lunge, squash/stretch, flips. */
   private readonly juice = { x: 0, y: 0, roll: 0, yaw: 0, pivot: 0, sx: 1, sy: 1 };
@@ -109,6 +111,7 @@ export class ApprovedRig implements Rig {
     if (!(height > 0) || !Number.isFinite(height)) throw new Error(`Invalid approved rig height: ${height}`);
     this.style = approvedStyleFor(subject.id);
     this.authored = subject.family === 'fighter';
+    this.cameraTurn = NEW_MOVES && this.authored ? CAMERA_TURN : 0;
     this.concept = BUILDERS[this.style](subject);
     this.concept.animate(0, 'ready');
     this.concept.root.updateMatrixWorld(true);
@@ -694,7 +697,9 @@ export class ApprovedRig implements Rig {
     if (this.disposed) return;
     const step = Math.max(0, dt);
     this.clock += step;
-    this.facingAngle = damp(this.facingAngle, this.facingTarget === 1 ? 0 : Math.PI, 28, step);
+    // Turned toward the camera, facing left is -π + turn so a turn-around swings through the front.
+    const left = this.cameraTurn > 0 ? -Math.PI + this.cameraTurn : Math.PI;
+    this.facingAngle = damp(this.facingAngle, this.facingTarget === 1 ? -this.cameraTurn : left, 28, step);
     this.root.rotation.y = this.facingAngle;
     this.flashTimer = Math.max(0, this.flashTimer - step);
     this.refreshColors();

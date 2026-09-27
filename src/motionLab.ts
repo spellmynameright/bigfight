@@ -24,6 +24,7 @@ import { addPresentationLights, applyPresentation, configurePresentationRenderer
 import { toonRamp } from './render/toon';
 import { buildApprovedRig, type ApprovedRig } from './rigs/ApprovedRig';
 import { fighterPose } from './rigs/fighterPose';
+import { CAMERA_TURN } from './rigs/newMoves';
 import { signatureMove } from './rigs/signatureMoves';
 import type { MotionInfo } from './rigs/poses';
 import './mockup/motionLab.css';
@@ -57,6 +58,7 @@ class Actor {
   constructor(readonly def: CharacterDef, readonly homeX: number, newMoves: boolean) {
     this.rig = buildApprovedRig(subjectById(def.id), def.proportions.height);
     this.rig.newMoves = newMoves;
+    this.rig.cameraTurn = newMoves ? CAMERA_TURN : 0;
     applyPresentation(this.rig.root, 'fighter');
     this.group.add(this.rig.root);
     this.x = homeX;
