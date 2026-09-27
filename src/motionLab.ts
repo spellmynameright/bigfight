@@ -55,7 +55,7 @@ class Actor {
   };
 
   constructor(readonly def: CharacterDef, readonly homeX: number, newMoves: boolean) {
-    this.rig = buildApprovedRig(subjectById(def.id), def.proportions.height);
+    this.rig = buildApprovedRig(subjectById(def.id), def.proportions.height, { newLook: newMoves });
     this.rig.newMoves = newMoves;
     applyPresentation(this.rig.root, 'fighter');
     this.group.add(this.rig.root);
@@ -401,6 +401,7 @@ requestAnimationFrame(frame);
   step: (n = 1) => { for (let i = 0; i < n; i += 1) tick(1 / 60); render(); },
   actors: () => actors,
   sheet,
+  render,
 };
 
 /**

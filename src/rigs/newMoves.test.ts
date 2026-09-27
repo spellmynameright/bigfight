@@ -118,3 +118,23 @@ test('signature moves are for combo hits only (weapons and powerups keep their l
   assert.ok(pose(2).angleTo(pose(-1)) > 0.3);
   rig.dispose();
 });
+
+test('the new look gives Relic fighters depth without changing their size from the front', () => {
+  for (const id of ['volt', 'kaze', 'titan']) {
+    const def = CHARACTERS.find((c) => c.id === id)!;
+    const measure = (newLook: boolean) => {
+      const rig = buildApprovedRig(subject(id), def.proportions.height, { newLook });
+      rig.root.updateMatrixWorld(true);
+      // Chest depth: the torso joint's own parts, front to back (profile rigs face +X).
+      const chest = new THREE.Box3().setFromObject(rig.joints.torso, true).getSize(new THREE.Vector3());
+      const whole = new THREE.Box3().setFromObject(rig.root, true).getSize(new THREE.Vector3());
+      rig.dispose();
+      return { chest, whole };
+    };
+    const now = measure(false);
+    const next = measure(true);
+    assert.ok(Math.abs(next.whole.y - now.whole.y) < 0.01, `${id} height changed`);
+    assert.ok(Math.abs(next.whole.z - now.whole.z) < 0.02, `${id} front width changed`);
+    assert.ok(next.chest.x > now.chest.x * 1.3, `${id} is not deeper from the side (${now.chest.x.toFixed(2)} → ${next.chest.x.toFixed(2)})`);
+  }
+});

@@ -10,7 +10,7 @@ import type { Rig } from './FighterRig';
 import type { JointName, JointRotation, MotionInfo, Pose } from './poses';
 import { approvedStyleFor } from './approvedStyles';
 import {
-  AIR_APEX, AIR_FALL, AIR_RISE, FLIP_TUCK, HIT_FOLD, HIT_RECOIL, LAND_CROUCH, LAND_CROUCH_DROP, MOVE_JOINTS, NEW_MOVES, TUMBLE_CURL,
+  AIR_APEX, AIR_FALL, AIR_RISE, FLIP_TUCK, HIT_FOLD, HIT_RECOIL, LAND_CROUCH, LAND_CROUCH_DROP, MOVE_JOINTS, NEW_MOVES, RELIC_FIGHTER_DEPTH, TUMBLE_CURL,
   blendOverlay, hasMove, impactEnvelope, isLightHit, moveJoints, sampleKeys, sampleMove,
 } from './newMoves';
 import { signatureMove } from './signatureMoves';
@@ -105,11 +105,13 @@ export class ApprovedRig implements Rig {
   private readonly overlayJoints: JointName[] = [];
   private reactSpinClock = 0;
 
-  constructor(private readonly subject: ConceptSubject, private readonly height: number) {
+  /** `newLook` builds the look under review (deeper Relic fighters); defaults to the `?moves=new` flag. */
+  constructor(private readonly subject: ConceptSubject, private readonly height: number, options: { newLook?: boolean } = {}) {
     if (!(height > 0) || !Number.isFinite(height)) throw new Error(`Invalid approved rig height: ${height}`);
     this.style = approvedStyleFor(subject.id);
     this.authored = subject.family === 'fighter';
-    this.concept = BUILDERS[this.style](subject);
+    const deep = (options.newLook ?? NEW_MOVES) && this.style === 'relic' && this.authored;
+    this.concept = deep ? buildRelic(subject, RELIC_FIGHTER_DEPTH) : BUILDERS[this.style](subject);
     this.concept.animate(0, 'ready');
     this.concept.root.updateMatrixWorld(true);
     this.concept.root.traverse(node => { if (node instanceof THREE.SkinnedMesh) node.computeBoundingBox(); });
@@ -729,6 +731,6 @@ export class ApprovedRig implements Rig {
   }
 }
 
-export function buildApprovedRig(subject: ConceptSubject, height: number): ApprovedRig {
-  return new ApprovedRig(subject, height);
+export function buildApprovedRig(subject: ConceptSubject, height: number, options: { newLook?: boolean } = {}): ApprovedRig {
+  return new ApprovedRig(subject, height, options);
 }
