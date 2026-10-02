@@ -95,6 +95,7 @@ export class ScriptedIntentSource implements IIntentSource {
     attackHeld: false,
     weaponPressed: false,
     weaponHeld: false,
+    aimX: 0,
     pausePressed: false,
     anyPressed: false,
   };
@@ -106,6 +107,7 @@ export class ScriptedIntentSource implements IIntentSource {
   private planJumpEvery = 0;
   private planAttackEvery = 0;
   private planWeaponEvery = 0;
+  private planAimX = 0;
   private frame = 0;
   private prevJumpHeld = false;
   private prevAttackHeld = false;
@@ -135,6 +137,7 @@ export class ScriptedIntentSource implements IIntentSource {
     s.attackHeld = attackHeld;
     s.weaponPressed = weaponHeld && !this.prevWeaponHeld;
     s.weaponHeld = weaponHeld;
+    s.aimX = this.planAimX;
     s.pausePressed = false;
     s.anyPressed = s.jumpPressed || s.attackPressed || s.weaponPressed;
     this.prevJumpHeld = jumpHeld;
@@ -152,6 +155,9 @@ export class ScriptedIntentSource implements IIntentSource {
     this.planJumpEvery = rng.next() < 0.55 ? 14 + rng.nextInt(30) : 0;
     this.planAttackEvery = rng.next() < 0.75 ? 8 + rng.nextInt(18) : 0;
     this.planWeaponEvery = rng.next() < 0.3 ? 40 + rng.nextInt(50) : 0;
+    // Mouse players turn to swing at the pointer, so aimed attacks get covered.
+    const aimRoll = rng.next();
+    this.planAimX = aimRoll < 0.3 ? 1 : aimRoll < 0.6 ? -1 : 0;
   }
 }
 

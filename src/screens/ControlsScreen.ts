@@ -1,6 +1,7 @@
 import { events } from '../core/events';
 import type { Game } from '../Game';
 import { button, el, uiRoot } from '../ui/dom';
+import { keyCap } from '../ui/keyCaps';
 import { GameplayScreen } from './GameplayScreen';
 import type { Screen } from './Screen';
 
@@ -16,7 +17,7 @@ export class ControlsScreen implements Screen {
   private root: HTMLElement | null = null;
 
   enter(game: Game): void {
-    game.input.setTouchControlsVisible(false);
+    game.input.setGameplayControlsActive(false);
     const touch = game.input.isTouch;
 
     this.root = uiRoot('bf-modal-backdrop');
@@ -32,7 +33,7 @@ export class ControlsScreen implements Screen {
       } else {
         row.keys.forEach((key, index) => {
           if (index > 0) el('span', 'bf-ctl-or', keys).textContent = row.join ?? 'or';
-          for (const cap of key.split(' ')) el('kbd', 'bf-kbd', keys).textContent = cap;
+          for (const cap of key.split(' ')) keyCap(cap, keys);
         });
       }
       const what = el('span', 'bf-ctl-what', line);
@@ -51,7 +52,7 @@ export class ControlsScreen implements Screen {
   exit(game: Game): void {
     // Only a fight underneath wants its touch controls back (the pop already
     // happened, so `top` is the screen below).
-    if (game.screens.top instanceof GameplayScreen) game.input.setTouchControlsVisible(true);
+    if (game.screens.top instanceof GameplayScreen) game.input.setGameplayControlsActive(true);
     this.root?.remove();
     this.root = null;
   }
@@ -62,22 +63,27 @@ export class ControlsScreen implements Screen {
 }
 
 interface ControlRow {
-  /** Key-cap groups (space-separated caps within a group) or a touch sentence. */
+  /**
+   * Key-cap groups (space-separated caps within a group; LMB/RMB draw a
+   * mouse button, see ui/keyCaps.ts) or a touch sentence.
+   */
   keys: string[] | string;
   join?: string;
   what: string;
   tip?: string;
 }
 
+// Desktop: left hand on WASD, right hand on the mouse. Attacks go toward the
+// pointer, so you never have to turn around first.
 const KEY_ROWS: ControlRow[] = [
   { keys: ['A D', '← →'], what: 'MOVE' },
-  { keys: ['W', '↑', 'SPACE'], what: 'JUMP', tip: 'Press again in the air to double jump!' },
-  { keys: ['J', 'Z'], what: 'ATTACK', tip: 'Tap 3 times for a combo!' },
-  { keys: ['K', 'X'], what: 'WEAPON', tip: 'Big hit — then it needs a moment to recharge.' },
-  { keys: ['S', 'SPACE'], join: '+', what: 'DROP DOWN', tip: 'Fall through the platform you stand on.' },
-  { keys: ['S', '↓'], what: 'FAST FALL', tip: 'Hold in the air to drop fast.' },
-  { keys: ['P', 'ESC'], what: 'PAUSE' },
-  { keys: ['↑ ↓ ← →', 'ENTER'], join: 'then', what: 'MENUS', tip: 'ESC goes back. ? opens this page anytime.' },
+  { keys: ['SPACE', 'W', '↑'], what: 'JUMP', tip: 'Press again in the air to double jump!' },
+  { keys: ['LMB'], what: 'ATTACK', tip: 'Hits toward your mouse pointer. Click 3 times for a combo!' },
+  { keys: ['RMB', 'E'], what: 'WEAPON', tip: 'Big hit toward your pointer, then it needs a moment to recharge.' },
+  { keys: ['S', '↓'], what: 'FALL FAST', tip: 'Hold in the air. S + SPACE drops through a platform.' },
+  { keys: ['ESC', 'P'], what: 'PAUSE' },
+  { keys: ['J', 'K'], join: 'and', what: 'NO MOUSE?', tip: 'J attacks, K fires your weapon. On the arrow keys? Z and X.' },
+  { keys: ['↑ ↓ ← →', 'ENTER'], join: 'then', what: 'MENUS', tip: 'Or just click! ESC goes back. ? opens this page anytime.' },
 ];
 
 const TOUCH_ROWS: ControlRow[] = [

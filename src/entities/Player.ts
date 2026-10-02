@@ -124,6 +124,7 @@ export class Player extends Fighter {
     this.intents.jumpPressed = state.jumpPressed;
     this.intents.attackPressed = state.attackPressed;
     this.intents.weaponPressed = state.weaponPressed;
+    this.intents.aimX = state.aimX;
     this.updatePowerupTimers(dt);
 
     // HAMMER MODE (Smash Bros style): relentless auto-swinging; manual

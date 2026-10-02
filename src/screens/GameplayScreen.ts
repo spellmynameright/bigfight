@@ -143,6 +143,8 @@ export class GameplayScreen implements Screen {
   private readonly liveFighters: Fighter[] = [];
   private readonly combatTargets: FighterLike[] = [];
   private readonly cameraPoints: Vec2[] = [];
+  /** Scratch for projecting the local fighter to the screen (mouse aim). */
+  private readonly aimProbe = new THREE.Vector3();
   private readonly debugSubmittedHitboxes: ActiveHitbox[] = [];
   private readonly splitSpawnPos: Vec2 = { x: 0, y: 0 };
   private readonly materialsEarned: Partial<Record<MaterialId, number>> = {};
@@ -361,7 +363,7 @@ export class GameplayScreen implements Screen {
     projectileManager.registerNetIds(this.registry);
 
     if (DEBUG) this.createDebug(game);
-    game.input.setTouchControlsVisible(true);
+    game.input.setGameplayControlsActive(true);
     game.events.emit('music', { mood: 'battle' });
   }
 
@@ -400,7 +402,8 @@ export class GameplayScreen implements Screen {
     if (this.trails) disposeTrails(this.trails, game.renderer.scene);
     this.cameraRig?.dispose();
     this.destroyDebug();
-    game.input.setTouchControlsVisible(false);
+    game.input.setGameplayControlsActive(false);
+    game.input.setAimAnchor(null);
     this.stage = null;
     this.enterGame = null;
     this.particles = null;
@@ -633,12 +636,32 @@ export class GameplayScreen implements Screen {
     this.powerupSpawner?.reconcileView();
   }
 
-  render(_game: Game, _alpha: number): void {
+  render(game: Game, _alpha: number): void {
     const now = performance.now(); // det-ok: render FPS display only
     const dt = Math.max(0.0001, (now - this.lastRenderMs) / 1000);
     this.lastRenderMs = now;
     this.fps = 1 / dt;
     this.cameraRig?.update(TIMESTEP);
+    this.updateAimAnchor(game);
+  }
+
+  /**
+   * Mouse aim is "which side of MY fighter is the pointer on", so the input
+   * layer needs the fighter's on-screen x. View-only: the sim only ever sees
+   * the resulting -1/0/+1, which travels with the rest of the input.
+   */
+  private updateAimAnchor(game: Game): void {
+    const local = this.localPlayer;
+    if (!local || !local.alive) {
+      game.input.setAimAnchor(null);
+      return;
+    }
+    const camera = game.renderer.camera;
+    camera.updateMatrixWorld();
+    const probe = this.aimProbe.copy(local.group.position);
+    probe.y += local.body.height * 0.55;
+    probe.project(camera);
+    game.input.setAimAnchor(probe.z < 1 ? probe.x : null);
   }
 
   /**

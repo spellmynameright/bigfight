@@ -24,7 +24,7 @@ export class LevelMapScreen implements Screen {
   ) {}
 
   enter(game: Game): void {
-    game.input.setTouchControlsVisible(false);
+    game.input.setGameplayControlsActive(false);
     this.root = uiRoot('bf-map-screen');
 
     const header = el('div', 'bf-map-header', this.root);

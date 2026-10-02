@@ -19,14 +19,18 @@ A bright, chunky, Smash-Bros-style platform fighter that runs in your browser â€
   rampage, and a **market** between levels
 
 ## Controls
-| | Touch (phone) | Keyboard |
-|---|---|---|
-| Move | left-side floating stick | A/D or arrow keys |
-| Jump / double-jump | JUMP | Space or W |
-| Attack combo | ATK | J or Z |
-| Weapon | WPN | K or X |
-| Drop through platform | stick down + JUMP | S + Space |
-| Pause | II | P or Esc |
+| | Touch (phone) | Mouse + keyboard | Keyboard only |
+|---|---|---|---|
+| Move | left-side floating stick | A/D | A/D or arrow keys |
+| Jump / double-jump | JUMP | Space or W | Space, W or Up |
+| Attack combo | ATK | left click | J (Z with arrows) |
+| Weapon | WPN | right click or E (Q also works) | K (X with arrows) |
+| Drop through platform | stick down + JUMP | S + Space | S + Space |
+| Fast fall | stick down in the air | S | S or Down |
+| Pause | II | Esc or P | Esc or P |
+
+With the mouse, attacks and weapons fire toward the pointer: a click on the other side of
+your fighter turns around and hits that way, even in the air.
 
 ## Tech
 Three.js + TypeScript + Vite. **100% procedural** â€” every model, animation, stage, sound

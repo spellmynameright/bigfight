@@ -35,6 +35,8 @@ export interface FighterIntent {
   jumpPressed: boolean;
   attackPressed: boolean;
   weaponPressed: boolean;
+  /** -1/+1 turns an attack or weapon that starts this step that way; 0 keeps facing. */
+  aimX: number;
 }
 
 const HURTBOX_PAD_X = 0.02;
@@ -90,6 +92,7 @@ export class Fighter extends Entity {
     jumpPressed: false,
     attackPressed: false,
     weaponPressed: false,
+    aimX: 0,
   };
 
   damage = 0;
@@ -186,6 +189,7 @@ export class Fighter extends Entity {
     this.intents.jumpPressed = io.bool(this.intents.jumpPressed);
     this.intents.attackPressed = io.bool(this.intents.attackPressed);
     this.intents.weaponPressed = io.bool(this.intents.weaponPressed);
+    this.intents.aimX = io.i32(this.intents.aimX);
     this.damage = io.f64(this.damage);
     this.damageScale = io.f64(this.damageScale);
     this.kbImmune = io.bool(this.kbImmune);
@@ -270,6 +274,7 @@ export class Fighter extends Entity {
       this.intents.jumpPressed ? 1 : 0,
       this.intents.attackPressed ? 1 : 0,
       this.intents.weaponPressed ? 1 : 0,
+      this.intents.aimX,
       this.damage,
       this.damageScale,
       this.kbImmune ? 1 : 0,
@@ -660,6 +665,7 @@ export class Fighter extends Entity {
     }
     if (this.attackPhaseTime >= total) {
       if (!this.currentAttackIsWeapon && this.comboQueued && this.comboIndex < 2) {
+        this.faceAim();
         this.startAttack(this.comboIndex + 1);
       } else {
         this.endAttack();
@@ -723,6 +729,7 @@ export class Fighter extends Entity {
 
   private tryStartAttack(): boolean {
     if (!this.intents.attackPressed) return false;
+    this.faceAim();
     // Spin fighters (Kaze, Shade) use their spin as the air attack directly.
     if (!this.body.grounded && this.def.combo[2].poseId === 'spin') {
       this.startAttack(2);
@@ -735,6 +742,7 @@ export class Fighter extends Entity {
 
   private tryStartWeaponAbility(): boolean {
     if (!this.intents.weaponPressed || this.weaponCooldown > 0 || !this.equippedWeapon) return false;
+    this.faceAim();
     this.startWeaponAbility(this.equippedWeapon);
     return true;
   }
@@ -798,6 +806,12 @@ export class Fighter extends Entity {
   private applyAirMove(dt: number, accel: number): void {
     const target = this.intents.moveX * this.def.speed;
     this.body.vel.x = moveToward(this.body.vel.x, target, accel * dt);
+  }
+
+  /** Mouse play: a new swing or shot turns toward the pointer, even mid-air. */
+  private faceAim(): void {
+    if (this.intents.aimX > 0) this.facing = 1;
+    else if (this.intents.aimX < 0) this.facing = -1;
   }
 
   private handleFacing(): void {

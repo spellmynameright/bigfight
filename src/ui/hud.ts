@@ -1,6 +1,7 @@
 import { events } from '../core/events';
 import type { PowerupId } from '../data/types';
 import { el, uiRoot } from './dom';
+import { keyCap } from './keyCaps';
 import { ARENA_PRESENTATION } from '../render/presentation';
 import { characterById } from '../data/characters';
 import { characterCssColor } from './cardColors';
@@ -33,12 +34,13 @@ const POWERUP_BANNERS: Record<PowerupId, string> = {
   freezeRay: 'FREEZE RAY!',
 };
 
+/** Space-separated caps per chip; LMB/RMB draw a mouse button (ui/keyCaps.ts). */
 const KEY_HINTS: [string, string][] = [
   ['WASD', 'MOVE'],
   ['SPACE', 'JUMP'],
-  ['J', 'ATTACK'],
-  ['K', 'WEAPON'],
-  ['P', 'PAUSE'],
+  ['LMB', 'ATTACK'],
+  ['RMB E', 'WEAPON'],
+  ['ESC', 'PAUSE'],
   ['?', 'HELP'],
 ];
 
@@ -69,7 +71,7 @@ export class Hud {
       const legend = el('div', 'bf-keyhints', this.root);
       for (const [key, what] of KEY_HINTS) {
         const chip = el('span', 'bf-keyhint', legend);
-        el('kbd', 'bf-kbd', chip).textContent = key;
+        for (const cap of key.split(' ')) keyCap(cap, chip, true);
         el('span', '', chip).textContent = what;
       }
     }

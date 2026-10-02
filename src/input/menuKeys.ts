@@ -6,6 +6,7 @@
  *   arrows / WASD  move focus to the nearest button in that direction
  *   Enter / Space / J / Z  press the focused button (first press just focuses)
  *   Esc  press the screen's back button (the "◀" round button or [data-back])
+ *   mouse back (side) button  same as Esc, instead of leaving the site
  *
  * Overlays that pause gameplay (pause, controls, settings) don't carry a
  * back button — they close themselves on Esc via `input.state.pausePressed`,
@@ -65,13 +66,23 @@ export function installMenuKeys(target: Window = window): () => void {
       if (back) back.click();
     }
   };
+  const onMouseUp = (event: MouseEvent): void => {
+    if (event.button !== 3) return;
+    const root = topMenuRoot();
+    const back = root ? backButton(root) : null;
+    if (!back) return; // nothing to go back to in-game: let the browser have it
+    event.preventDefault(); // stay on the site; Chrome navigates on mouseup
+    back.click();
+  };
   const onFocusOut = (event: FocusEvent): void => {
     (event.target as HTMLElement | null)?.classList?.remove(FOCUS_CLASS);
   };
   target.addEventListener('keydown', onKeyDown, { capture: true });
   target.addEventListener('focusout', onFocusOut, { capture: true });
+  target.addEventListener('mouseup', onMouseUp, { capture: true });
   return () => {
     target.removeEventListener('keydown', onKeyDown, { capture: true });
+    target.removeEventListener('mouseup', onMouseUp, { capture: true });
     target.removeEventListener('focusout', onFocusOut, { capture: true });
   };
 }

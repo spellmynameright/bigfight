@@ -36,7 +36,7 @@ export class CharacterSelectScreen implements Screen {
   ) {}
 
   enter(game: Game): void {
-    game.input.setTouchControlsVisible(false);
+    game.input.setGameplayControlsActive(false);
     this.root = uiRoot('bf-select-screen');
     const header = el('div', 'bf-select-header', this.root);
     button('◀', () => this.callbacks.onBack(), 'bf-button bf-button-round', header);

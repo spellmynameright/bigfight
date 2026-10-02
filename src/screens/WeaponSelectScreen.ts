@@ -32,7 +32,7 @@ export class WeaponSelectScreen implements Screen {
   ) {}
 
   enter(game: Game): void {
-    game.input.setTouchControlsVisible(false);
+    game.input.setGameplayControlsActive(false);
     this.root = uiRoot('bf-select-screen bf-weapon-screen');
 
     const header = el('div', 'bf-select-header', this.root);

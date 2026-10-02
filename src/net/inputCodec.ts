@@ -3,6 +3,7 @@ import type { IIntentSource, InputState } from '../contracts';
 /**
  * Netplay input wire format: 3 bytes per player per frame.
  *   byte0  bit0 jumpHeld · bit1 attackHeld · bit2 weaponHeld
+ *          bit3 aiming · bit4 aim right (else left), see InputState.aimX
  *   byte1  moveX quantized to int8 (-127..127 → -1..1)
  *   byte2  moveY quantized to int8
  *
@@ -13,11 +14,20 @@ import type { IIntentSource, InputState } from '../contracts';
 
 export const INPUT_BYTES = 3;
 
+const AIM_BIT = 8;
+const AIM_RIGHT_BIT = 16;
+
+function decodeAim(buttons: number): number {
+  if ((buttons & AIM_BIT) === 0) return 0;
+  return (buttons & AIM_RIGHT_BIT) !== 0 ? 1 : -1;
+}
+
 export function encodeInput(state: InputState, out: Uint8Array, offset: number): void {
   let buttons = 0;
   if (state.jumpHeld) buttons |= 1;
   if (state.attackHeld) buttons |= 2;
   if (state.weaponHeld) buttons |= 4;
+  if (state.aimX !== 0) buttons |= state.aimX > 0 ? AIM_BIT | AIM_RIGHT_BIT : AIM_BIT;
   out[offset] = buttons;
   out[offset + 1] = quantizeAxis(state.moveX);
   out[offset + 2] = quantizeAxis(state.moveY);
@@ -48,6 +58,7 @@ export class NetIntentSource implements IIntentSource {
     attackHeld: false,
     weaponPressed: false,
     weaponHeld: false,
+    aimX: 0,
     pausePressed: false,
     anyPressed: false,
   };
@@ -71,6 +82,7 @@ export class NetIntentSource implements IIntentSource {
     s.attackHeld = attackHeld;
     s.weaponPressed = weaponHeld && !this.prevWeaponHeld;
     s.weaponHeld = weaponHeld;
+    s.aimX = decodeAim(buttons);
     s.pausePressed = false;
     s.anyPressed = s.jumpPressed || s.attackPressed || s.weaponPressed;
     this.prevJumpHeld = jumpHeld;

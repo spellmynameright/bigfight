@@ -59,7 +59,7 @@ export class OnlineLobbyScreen implements Screen {
 
   enter(game: Game): void {
     this.game = game;
-    game.input.setTouchControlsVisible(false);
+    game.input.setGameplayControlsActive(false);
     this.stage = new PedestalStage(game.renderer.scene, PEDESTAL_COLORS);
     this.stage.setVisible(false);
     this.root = uiRoot('bf-online-screen');

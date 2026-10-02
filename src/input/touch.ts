@@ -32,6 +32,9 @@ export class TouchInput {
   private interactionQueued = false;
 
   private readonly onRootPointerDown = (event: PointerEvent): void => {
+    // A mouse on a touchscreen laptop is mouse combat (input/mouse.ts), not
+    // the stick. Returning before preventDefault keeps its mousedown alive.
+    if (event.pointerType === 'mouse') return;
     event.preventDefault();
     this.interactionQueued = true;
     if (event.clientX > window.innerWidth * 0.55) return;

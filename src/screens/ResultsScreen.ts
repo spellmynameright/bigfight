@@ -40,7 +40,7 @@ export class ResultsScreen implements Screen {
   ) {}
 
   enter(game: Game): void {
-    game.input.setTouchControlsVisible(false);
+    game.input.setGameplayControlsActive(false);
     this.root = uiRoot('bf-modal-backdrop bf-results');
     const panel = el('div', 'bf-panel', this.root);
     const r = this.result;

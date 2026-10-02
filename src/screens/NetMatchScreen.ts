@@ -102,7 +102,7 @@ export class NetMatchScreen implements Screen {
   exit(game: Game): void {
     this.removeMenu();
     this.removeBanner();
-    game.input.setTouchControlsVisible(true);
+    game.input.setGameplayControlsActive(false);
     simPhase.netMode = false;
     this.inner?.exit(game);
     this.inner = null;
@@ -236,7 +236,7 @@ export class NetMatchScreen implements Screen {
 
   private showMenu(game: Game): void {
     if (this.menuRoot) return;
-    game.input.setTouchControlsVisible(false);
+    game.input.setGameplayControlsActive(false);
     const root = uiRoot('bf-modal-backdrop');
     this.menuRoot = root;
     const panel = el('div', 'bf-panel', root);
@@ -306,7 +306,7 @@ export class NetMatchScreen implements Screen {
     const game = this.game;
     if (!game) return;
     this.removeBanner();
-    game.input.setTouchControlsVisible(false);
+    game.input.setGameplayControlsActive(false);
     const root = uiRoot('bf-modal-backdrop');
     this.bannerRoot = root;
     const panel = el('div', 'bf-panel', root);
@@ -335,6 +335,6 @@ export class NetMatchScreen implements Screen {
   }
 
   private restoreTouchControlsIfClear(): void {
-    if (!this.menuRoot && !this.bannerRoot) this.game?.input.setTouchControlsVisible(true);
+    if (!this.menuRoot && !this.bannerRoot) this.game?.input.setGameplayControlsActive(true);
   }
 }

@@ -29,6 +29,12 @@ export interface InputState {
   attackHeld: boolean;
   weaponPressed: boolean;
   weaponHeld: boolean;
+  /**
+   * Which way an attack or weapon starting this step should face: -1 left,
+   * +1 right, 0 keep the current facing. Mouse play aims at the pointer;
+   * keys and touch leave it 0.
+   */
+  aimX: number;
   pausePressed: boolean;
   /** Any interaction this step (menus, audio unlock). */
   anyPressed: boolean;
@@ -47,8 +53,17 @@ export interface IInput {
   readonly state: InputState;
   /** Snapshot + edge detection; call exactly once per fixed step. */
   update(): void;
-  /** Show/hide the touch overlay (gameplay vs menus). */
-  setTouchControlsVisible(visible: boolean): void;
+  /**
+   * Gameplay vs menus: shows the touch overlay on touch devices and arms
+   * mouse combat (clicks attack, the pointer aims, no context menu).
+   */
+  setGameplayControlsActive(active: boolean): void;
+  /**
+   * Screen position of the fighter this device controls, in normalized device
+   * x (-1 left edge .. +1 right edge), or null when there is none. Mouse aim
+   * compares the pointer against it.
+   */
+  setAimAnchor(ndcX: number | null): void;
   /** True when running on a touch device. */
   readonly isTouch: boolean;
   /** Set the weapon-button cooldown ring fill, 0 (ready) – 1 (just used). */

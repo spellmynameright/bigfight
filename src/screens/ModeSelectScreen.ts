@@ -25,7 +25,7 @@ export class ModeSelectScreen implements Screen {
   ) {}
 
   enter(game: Game): void {
-    game.input.setTouchControlsVisible(false);
+    game.input.setGameplayControlsActive(false);
 
     this.showcase = new RosterShowcase(game.renderer.scene, game.save);
     this.showcase.start(game.renderer.camera);

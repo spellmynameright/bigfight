@@ -40,6 +40,7 @@ class ScriptedBot {
     attackHeld: false,
     weaponPressed: false,
     weaponHeld: false,
+    aimX: 0,
     pausePressed: false,
     anyPressed: false,
   };
@@ -54,6 +55,7 @@ class ScriptedBot {
     this.state.jumpHeld = f % 13 < 4;
     this.state.attackHeld = f % 17 < 6;
     this.state.weaponHeld = f % 29 < 3;
+    this.state.aimX = (f % 11 < 4 ? 1 : f % 11 < 8 ? -1 : 0);
     this.frame += 1;
     return this.state;
   }
@@ -73,6 +75,7 @@ class FakeScreen {
       this.x += s.moveX * (i + 1);
       if (s.jumpPressed) this.vy += 5;
       if (s.attackHeld) this.x -= 0.25;
+      this.x += s.aimX * 0.125;
     }
     this.vy *= 0.98;
     this.x += this.vy * 0.01;

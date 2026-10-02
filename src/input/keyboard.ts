@@ -1,4 +1,8 @@
-/** Tracks keyboard state from `event.code` for gameplay input. */
+/**
+ * Tracks keyboard state from `event.code` for gameplay input. Two layouts
+ * share it: WASD + mouse (E/Q fire the weapon at the pointer, like ability
+ * keys) and keyboard-only (J/K beside WASD, or Z/X beside the arrows).
+ */
 export class KeyboardInput {
   /** True while either left key is held. */
   leftHeld = false;
@@ -12,8 +16,10 @@ export class KeyboardInput {
   jumpHeld = false;
   /** True while any attack key is held. */
   attackHeld = false;
-  /** True while any weapon key is held. */
+  /** True while a keyboard-only weapon key (K/X) is held. */
   weaponHeld = false;
+  /** True while a mouse-layout weapon key (E/Q) is held; it aims at the pointer. */
+  aimedWeaponHeld = false;
   /** True while any pause key is held. */
   pauseHeld = false;
   /** Horizontal movement axis, -1..1. */
@@ -29,6 +35,9 @@ export class KeyboardInput {
     // Typing in a text field (e.g. the online nickname) wins over game input —
     // otherwise WASD/P/space never reach the field.
     if (isEditableTarget(event.target)) return;
+    // Browser/OS shortcuts (Ctrl+S, Cmd+Q...) are not game input, and macOS
+    // never sends keyup for a key released while Cmd is down: it would stick.
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
     // Enter is a "press any key" key (title screen) but never a held game
     // input, and it must keep its native button-click behavior in menus.
     if (event.code === 'Enter') {
@@ -52,12 +61,24 @@ export class KeyboardInput {
     event.preventDefault();
   };
 
+  /** Alt-tab or a hidden tab swallows the keyup: let go of everything. */
+  private readonly releaseAll = (): void => {
+    this.heldCodes.clear();
+    this.refresh();
+  };
+
+  private readonly onVisibility = (): void => {
+    if (document.visibilityState === 'hidden') this.releaseAll();
+  };
+
   /** Registers global key listeners. */
   constructor(target: Window | null = typeof window === 'undefined' ? null : window) {
     this.target = target;
     if (this.target) {
       this.target.addEventListener('keydown', this.onKeyDown);
       this.target.addEventListener('keyup', this.onKeyUp);
+      this.target.addEventListener('blur', this.releaseAll);
+      this.target.document.addEventListener('visibilitychange', this.onVisibility);
     }
   }
 
@@ -73,6 +94,8 @@ export class KeyboardInput {
     if (!this.target) return;
     this.target.removeEventListener('keydown', this.onKeyDown);
     this.target.removeEventListener('keyup', this.onKeyUp);
+    this.target.removeEventListener('blur', this.releaseAll);
+    this.target.document.removeEventListener('visibilitychange', this.onVisibility);
   }
 
   private refresh(): void {
@@ -83,6 +106,7 @@ export class KeyboardInput {
     this.jumpHeld = this.heldCodes.has('Space') || this.upHeld;
     this.attackHeld = this.heldCodes.has('KeyJ') || this.heldCodes.has('KeyZ');
     this.weaponHeld = this.heldCodes.has('KeyK') || this.heldCodes.has('KeyX');
+    this.aimedWeaponHeld = this.heldCodes.has('KeyE') || this.heldCodes.has('KeyQ');
     this.pauseHeld = this.heldCodes.has('KeyP') || this.heldCodes.has('Escape');
     this.moveX = (this.rightHeld ? 1 : 0) - (this.leftHeld ? 1 : 0);
     this.moveY = (this.upHeld ? 1 : 0) - (this.downHeld ? 1 : 0);
@@ -115,6 +139,8 @@ function isGameCode(code: string): boolean {
     case 'KeyZ':
     case 'KeyK':
     case 'KeyX':
+    case 'KeyE':
+    case 'KeyQ':
     case 'KeyP':
     case 'Escape':
       return true;

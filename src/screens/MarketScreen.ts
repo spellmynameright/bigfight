@@ -32,7 +32,7 @@ export class MarketScreen implements Screen {
   constructor(private readonly onDone: () => void) {}
 
   enter(game: Game): void {
-    game.input.setTouchControlsVisible(false);
+    game.input.setGameplayControlsActive(false);
     this.root = uiRoot('bf-market-screen');
 
     const header = el('div', 'bf-select-header', this.root);

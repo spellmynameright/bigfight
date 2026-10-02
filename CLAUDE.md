@@ -58,6 +58,9 @@ their picks, THEN port to the game. Don't restyle live game code on taste-guesse
   walks the buttons in the top `#ui` root). Esc presses the `◀` button or one marked
   `data-back`; overlays (pause/settings/controls) instead close on `pausePressed` in their
   `update()`. Never do BOTH on one screen — Esc would pop twice.
+- Desktop fights are WASD + mouse, League-style (Derek 2026-10-02): left click attacks, right
+  click / E fires the weapon, and both turn toward the pointer (left/right only, mid-air too;
+  rides the net input as `aimX`). J/K and Z/X stay as keyboard-only keys and never aim.
 - Losing keeps all loot (Ryder's rule) — never add loss penalties.
 - Campaign bosses escalate: each NEW boss must be the hardest yet (Jacob 2026-07-10);
   Lava Golem (L16) is the current ceiling. Hard = pace/damage/variety, never unclear telegraphs.
