@@ -1,4 +1,9 @@
-name: Deploy playbigfight.com
+# The checks a commit on main must pass before it is served. playbigfight.com runs on a
+# self-hosted machine that follows main: every five minutes it looks for a new commit, waits
+# for this workflow's `validate` job to pass on it, then builds server/Dockerfile from that
+# commit and swaps it in. Nothing here deploys, so the job's name is the contract: renaming
+# `validate` stops new commits from going live.
+name: Validate main
 
 on:
   push:
@@ -6,7 +11,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: fly-deploy
+  group: validate-main
   cancel-in-progress: false
 
 jobs:
@@ -39,38 +44,3 @@ jobs:
       - run: npm run net:lobby-test
       - run: npm run net:ui-test
       - run: node scripts/replay-ci.mjs
-
-  check-token:
-    runs-on: ${{ vars.GARRISON_RUNNER || vars.HEAVY_RUNNER || vars.LHS_RUNNER || 'ubuntu-latest' }}
-    outputs:
-      has-token: ${{ steps.probe.outputs.has-token }}
-    steps:
-      - id: probe
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: |
-          if [ -z "$FLY_API_TOKEN" ]; then
-            echo "has-token=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::FLY_API_TOKEN is not set; playbigfight.com was not deployed."
-          else
-            echo "has-token=true" >> "$GITHUB_OUTPUT"
-          fi
-
-  deploy:
-    needs: [validate, check-token]
-    if: ${{ needs.check-token.outputs.has-token == 'true' }}
-    runs-on: ${{ vars.GARRISON_RUNNER || vars.HEAVY_RUNNER || vars.LHS_RUNNER || 'ubuntu-latest' }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-        if: runner.environment == 'github-hosted'
-      - name: Deploy browser and room server
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-          FLY_APP: bigfight-online
-        run: node scripts/deploy-server.mjs

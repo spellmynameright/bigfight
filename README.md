@@ -36,11 +36,14 @@ your fighter turns around and hits that way, even in the air.
 Three.js + TypeScript + Vite. **100% procedural** — every model, animation, stage, sound
 effect, and music track is generated in code; the repo contains zero asset files.
 
-`playbigfight.com` is the canonical browser game and online room server. Fly runs one Dallas
-machine for room discovery, WebRTC signaling, and fallback relay traffic; live matches use
-direct peer-to-peer data channels whenever the players' routers allow them. GitHub Pages only
-redirects old links to the canonical domain. Pushing `main` deploys the combined client/server
-release through GitHub Actions.
+`playbigfight.com` is the canonical browser game and online room server. One self-hosted
+machine serves the game and handles room discovery, WebRTC signaling, and fallback relay
+traffic; live matches use direct peer-to-peer data channels whenever the players' routers
+allow them. GitHub Pages only redirects old links to the canonical domain. Pushing `main`
+releases the combined client/server: the host looks for a new commit every five minutes,
+waits for the `validate` workflow to pass on it, then builds `server/Dockerfile` from that
+commit and swaps it in.
+`https://playbigfight.com/version.json` reports the commit being served.
 
 Before production, run the full local gate:
 
@@ -54,8 +57,8 @@ npm run net:ui-test
 node scripts/replay-ci.mjs
 ```
 
-For a separate Fly staging app, set its name explicitly so the production app
-cannot be targeted accidentally:
+`scripts/deploy-server.mjs` deploys to Fly and is kept for a separate staging app only.
+Production no longer runs there, so always name the app:
 
 ```sh
 FLY_APP=bigfight-staging node scripts/deploy-server.mjs

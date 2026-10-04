@@ -1,8 +1,11 @@
 // Deploy one source release as both the browser client and online server.
 //
-//   node scripts/deploy-server.mjs
-//   node scripts/deploy-server.mjs --build-only
+// Production (playbigfight.com) is not on Fly: pushing main releases it. This deploys a
+// separate Fly app, such as a staging one, and the app must be named.
+//
 //   FLY_APP=bigfight-staging node scripts/deploy-server.mjs
+//   FLY_APP=bigfight-staging node scripts/deploy-server.mjs --build-only
+//   node scripts/deploy-server.mjs --app=bigfight-staging
 import { execFileSync, spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,7 +14,12 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const buildOnly = process.argv.includes('--build-only');
 const releaseId = process.env.GITHUB_SHA?.trim() || gitReleaseId();
 const appArg = process.argv.find((arg) => arg.startsWith('--app='))?.slice('--app='.length);
-const app = cleanAppName(appArg || process.env.FLY_APP || 'bigfight-online');
+const requestedApp = appArg || process.env.FLY_APP;
+if (!requestedApp) {
+  console.error('Name the Fly app to deploy, for example FLY_APP=bigfight-staging. Production is not on Fly: pushing main releases it.');
+  process.exit(1);
+}
+const app = cleanAppName(requestedApp);
 
 const deployArgs = [
   'deploy',
