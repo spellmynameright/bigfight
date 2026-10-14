@@ -36,6 +36,9 @@ export class Particles {
     this.vel = new Float32Array(n * 2);
     this.life = new Float32Array(n);
     this.maxLife = new Float32Array(n);
+    // Slots that have never been spawned are parked where dead ones go. Left at
+    // (0, 0, 0) with their black start color they drew a dark dot at stage center.
+    for (let i = 0; i < n; i++) this.pos[i * 3 + 1] = -9999;
 
     const geom = new THREE.BufferGeometry();
     this.posAttr = new THREE.BufferAttribute(this.pos, 3);
