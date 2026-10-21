@@ -10,6 +10,9 @@ spec; when a "bug report" describes intended-but-confusing behavior, fix the *co
 
 ## Workflow
 - `npm run dev` (LAN-exposed for phone testing) · `npm run check` · `npm run build` (tsc + vite).
+- The trailer is filmed from main: `?trailer` hands an outside director the game's handles
+  (`src/trailer.ts`; nothing without it). `npm run trailer:test` (in `validate`) steps a fight
+  through them as the director does; a change that breaks it breaks the trailer.
 - **Deploy = `git push`** (main → the `validate` workflow → the host that serves
   playbigfight.com, which checks for a new commit every five minutes and builds and swaps in
   one whose `validate` passed). Verify with

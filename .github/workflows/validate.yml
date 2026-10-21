@@ -43,4 +43,5 @@ jobs:
       - run: npm run net:test
       - run: npm run net:lobby-test
       - run: npm run net:ui-test
+      - run: npm run trailer:test
       - run: node scripts/replay-ci.mjs

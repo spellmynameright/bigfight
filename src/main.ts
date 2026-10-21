@@ -10,6 +10,8 @@ document.documentElement.classList.toggle('bf-arena', ARENA_PRESENTATION);
 const game = new Game();
 game.start();
 installMenuKeys();
+// Filming the trailer: ?trailer hands an outside director the game's handles (src/trailer.ts).
+if (new URLSearchParams(location.search).has('trailer')) void import('./trailer').then((m) => m.installTrailerHooks(game));
 
 // `?` / F1 opens HOW TO PLAY anywhere (toggles it closed too). Not during an
 // online match: the overlay would stop the net sim pumping for everyone.
